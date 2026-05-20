@@ -1,26 +1,40 @@
 {
   "name": "gitwise",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
+  "main": "dist/index.js",
+  "bin": {
+    "gitwise": "./dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "git",
+    "cli",
+    "ai",
+    "groq",
+    "commit",
+    "changelog",
+    "developer-tools"
+  ],
+  "author": "dave-8bit",
+  "license": "MIT",
   "dependencies": {
-    "chalk": "^5.6.2",
-    "commander": "^14.0.3",
-    "groq-sdk": "^1.2.0",
-    "inquirer": "^13.4.3",
-    "ora": "^9.4.0",
-    "simple-git": "^3.36.0"
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "groq-sdk": "^0.3.3",
+    "inquirer": "^9.2.15",
+    "ora": "^8.0.1",
+    "simple-git": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
-    "nodemon": "^3.1.14",
+    "@types/node": "^20.11.5",
+    "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^5.3.3"
   }
 }
