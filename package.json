@@ -1,10 +1,10 @@
 {
-  "name": "gitwise",
+ "name": "gritch",
   "version": "1.0.0",
   "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
   "main": "dist/index.js",
   "bin": {
-    "gitwise": "./dist/index.js"
+    "gritch": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -30,6 +30,7 @@
     "dotenv": "^17.4.2",
     "groq-sdk": "^0.3.3",
     "inquirer": "^9.2.15",
+    "langchain-weather-integration": "^0.1.0",
     "ora": "^8.0.1",
     "simple-git": "^3.22.0"
   },
