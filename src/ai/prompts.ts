@@ -3,6 +3,7 @@ export function commitSystemPrompt(): string {
     'You are an expert Git commit message writer.',
     'Follow Conventional Commits format.',
     'Types allowed: feat, fix, chore, docs, style, refactor, test, perf.',
+    'Keep the commit message under 72 characters.',
     '',
     'Return only the commit message. Output nothing else.',
   ].join('\n');
