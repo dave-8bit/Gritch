@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+import 'dotenv/config';
 import { Command } from 'commander';
 
 import { commitCommand } from './commands/commit';
@@ -31,7 +31,7 @@ program
 
 program
   .command('changelog <from> <to>')
-  .description('Generate a changelog between two git refs or tags')
+  .description('Generate a changelog between two git ref or tags')
   .action((from: string, to: string) => {
     void changelogCommand(from, to);
   });

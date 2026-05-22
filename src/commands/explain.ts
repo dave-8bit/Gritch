@@ -1,4 +1,6 @@
+import chalk from 'chalk';
 import { chat } from '../ai/groq';
+
 import { explainSystemPrompt, explainUserPrompt } from '../ai/prompts';
 import { getCommitDiff, validateRepo } from '../utils/git';
 import { spinner, printError, printHeader, printInfo, printDivider } from '../utils/display';
@@ -31,7 +33,8 @@ export async function explainCommand(hash: string): Promise<void> {
     spinner.succeed();
 
     printHeader('Commit Explanation');
-    console.log(require('chalk').dim(hash));
+    console.log(chalk.dim(hash));
+
     printDivider();
     printInfo(explanation);
     printDivider();

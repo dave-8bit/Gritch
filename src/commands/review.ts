@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { chat } from '../ai/groq';
 import { reviewSystemPrompt, reviewUserPrompt } from '../ai/prompts';
-import { getStagedDiff, validateRepo } from '../utils/git';
+import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
+
 import {
   spinner,
   printError,
@@ -41,10 +42,15 @@ export async function reviewCommand(language: string): Promise<void> {
     }
 
     spinner.text = 'Reviewing your code with AI…';
-    const raw = await chat(reviewSystemPrompt(), reviewUserPrompt(diff, language));
+    const raw = await chat(
+      reviewSystemPrompt(),
+      reviewUserPrompt(trimDiff(diff), language),
+    );
+
     spinner.succeed();
 
     let result: ReviewResult;
+
     try {
       result = JSON.parse(raw) as ReviewResult;
     } catch {

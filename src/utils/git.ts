@@ -47,3 +47,8 @@ export async function validateRepo(): Promise<void> {
   }
 }
 
+export function trimDiff(diff: string, maxChars: number = 6000): string {
+  if (diff.length <= maxChars) return diff;
+  return diff.slice(0, maxChars) + "\n... [diff trimmed for review]";
+}
+

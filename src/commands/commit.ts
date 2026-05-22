@@ -3,7 +3,8 @@ import childProcess from 'child_process';
 
 import { chat } from '../ai/groq';
 import { commitSystemPrompt, commitUserPrompt } from '../ai/prompts';
-import { getStagedDiff, validateRepo } from '../utils/git';
+import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
+
 import {
   spinner,
   printSuccess,
@@ -40,7 +41,8 @@ export async function commitCommand(): Promise<void> {
     }
 
     spinner.text = 'Generating commit message with AI…';
-    const message = await chat(commitSystemPrompt(), commitUserPrompt(diff));
+    const message = await chat(commitSystemPrompt(), commitUserPrompt(trimDiff(diff)));
+
     spinner.succeed();
 
     printHeader('Generated Commit Message');

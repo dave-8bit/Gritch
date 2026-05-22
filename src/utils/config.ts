@@ -3,7 +3,7 @@ import path from 'path';
 import type { GitwiseConfig } from '../types/index';
 
 export const defaultConfig: GitwiseConfig = {
-  model: 'llama3-70b-8192',
+ model: 'llama-3.3-70b-versatile',
   maxTokens: 1024,
   reviewThreshold: 7,
   conventionalCommits: true,
