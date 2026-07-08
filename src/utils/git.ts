@@ -43,7 +43,7 @@ export async function validateRepo(): Promise<void> {
   try {
     await git.status();
   } catch {
-    throw new Error('Not a git repository. Please run gitwise inside a git project.');
+    throw new Error('Not a git repository. Please run gritch inside a git project.');
   }
 }
 
