@@ -1,7 +1,7 @@
 import { confirm } from '@inquirer/prompts';
 import childProcess from 'child_process';
 
-import { chat } from '../ai/groq';
+import { AIService } from '../core/ai/ai.service';
 import { commitSystemPrompt, commitUserPrompt } from '../ai/prompts';
 import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
 
@@ -41,7 +41,12 @@ export async function commitCommand(): Promise<void> {
     }
 
     spinner.text = 'Generating commit message with AI…';
-    const message = await chat(commitSystemPrompt(), commitUserPrompt(trimDiff(diff)));
+    const response = await AIService.chat({
+      systemPrompt: commitSystemPrompt(),
+      userPrompt: commitUserPrompt(trimDiff(diff)),
+    });
+    const message = response.content;
+
 
     spinner.succeed();
 

@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { chat } from '../ai/groq';
+import { AIService } from '../core/ai/ai.service';
 import { reviewSystemPrompt, reviewUserPrompt } from '../ai/prompts';
 import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
 
@@ -42,10 +42,12 @@ export async function reviewCommand(language: string): Promise<void> {
     }
 
     spinner.text = 'Reviewing your code with AI…';
-    const raw = await chat(
-      reviewSystemPrompt(),
-      reviewUserPrompt(trimDiff(diff), language),
-    );
+    const response = await AIService.chat({
+      systemPrompt: reviewSystemPrompt(),
+      userPrompt: reviewUserPrompt(trimDiff(diff), language),
+    });
+    const raw = response.content;
+
 
     spinner.succeed();
 

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { chat } from '../ai/groq';
+import { AIService } from '../core/ai/ai.service';
 import { changelogSystemPrompt, changelogUserPrompt } from '../ai/prompts';
 import { getCommitsBetween, validateRepo } from '../utils/git';
 import {
@@ -37,10 +37,12 @@ export async function changelogCommand(from: string, to: string): Promise<void> 
     }
 
     spinner.text = 'Generating changelog with AI…';
-    const changelog = await chat(
-      changelogSystemPrompt(),
-      changelogUserPrompt(commits, from, to),
-    );
+    const response = await AIService.chat({
+      systemPrompt: changelogSystemPrompt(),
+      userPrompt: changelogUserPrompt(commits, from, to),
+    });
+    const changelog = response.content;
+
     spinner.succeed();
 
     printHeader('Generated Changelog');

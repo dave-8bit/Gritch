@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { chat } from '../ai/groq';
+import { AIService } from '../core/ai/ai.service';
 
 import { explainSystemPrompt, explainUserPrompt } from '../ai/prompts';
 import { getCommitDiff, validateRepo } from '../utils/git';
@@ -29,7 +29,12 @@ export async function explainCommand(hash: string): Promise<void> {
     }
 
     spinner.text = 'Analysing commit with AI…';
-    const explanation = await chat(explainSystemPrompt(), explainUserPrompt(diff, hash));
+    const response = await AIService.chat({
+      systemPrompt: explainSystemPrompt(),
+      userPrompt: explainUserPrompt(diff, hash),
+    });
+    const explanation = response.content;
+
     spinner.succeed();
 
     printHeader('Commit Explanation');
