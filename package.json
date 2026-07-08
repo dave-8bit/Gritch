@@ -4,7 +4,7 @@
  "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
  "main": "dist/index.js",
  "bin": {
-  "gritch": "./dist/index.js"
+  "gritch": "dist/index.js"
  },
  "scripts": {
   "build": "tsc",
