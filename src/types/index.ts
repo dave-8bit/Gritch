@@ -33,6 +33,5 @@ export interface ExplainResult {
   details: string;
 }
 
-export type { GitwiseConfig } from '../core/config/config.types';
-
+export type { GritchConfig, GitwiseConfig } from '../core/config/config.types';
 
