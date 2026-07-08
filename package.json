@@ -1,6 +1,6 @@
 {
  "name": "gritch",
- "version": "1.0.1",
+ "version": "1.0.2",
  "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
  "main": "dist/index.js",
  "bin": {
