@@ -7,11 +7,13 @@ const GRITCH_CONFIG_FILENAME = 'gritch.config.json';
 const LEGACY_GITWISE_CONFIG_FILENAME = 'gitwise.config.json';
 
 export const defaultConfig: GritchConfig = {
+  provider: 'groq',
   model: 'llama-3.3-70b-versatile',
   maxTokens: 1024,
   reviewThreshold: 7,
   conventionalCommits: true,
 };
+
 
 export function loadConfig(): GritchConfig {
   const gritchConfigPath = path.join(process.cwd(), GRITCH_CONFIG_FILENAME);
