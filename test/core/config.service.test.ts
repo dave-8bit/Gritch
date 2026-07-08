@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { vi } from 'vitest';
+
+// mock fs before importing config.service
+vi.mock('fs', () => {
+  return {
+    existsSync: vi.fn(),
+    readFileSync: vi.fn(),
+  };
+});
+
 import fs from 'fs';
-
-vi.mock('fs', () => fs);
-
 import * as configService from '../../src/core/config/config.service';
+
+
 
 
 
@@ -14,6 +21,9 @@ import * as configService from '../../src/core/config/config.service';
 
 describe('ConfigService loadConfig()', () => {
   const cwd = process.cwd();
+  const gritchPath = require('path').join(cwd, 'gritch.config.json');
+  const legacyPath = require('path').join(cwd, 'gitwise.config.json');
+
 
   let existsSyncSpy: ReturnType<typeof vi.spyOn>;
   let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
