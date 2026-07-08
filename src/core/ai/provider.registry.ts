@@ -22,6 +22,18 @@ export function getActiveProviderId(): ProviderId {
   if (fromEnv === 'groq') return 'groq';
   if (fromEnv === 'openrouter') return 'openrouter';
 
+  if (fromEnv && fromEnv !== 'groq' && fromEnv !== 'openrouter') {
+    // Preserve behavior by falling back to 'groq'.
+    // Keep this warning lightweight to avoid changing runtime semantics.
+    console.warn(
+      `WARNING: Unsupported GRITCH_PROVIDER="${fromEnv}"; falling back to "groq".`
+    );
+  }
+
+
+
+
+
   // NOTE: loadConfig() preserves legacy config behavior.
   // If provider is omitted, defaultConfig.provider will be used.
   // This ensures backward compatibility when no provider is specified.
