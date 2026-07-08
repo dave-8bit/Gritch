@@ -33,10 +33,6 @@ export interface ExplainResult {
   details: string;
 }
 
-export interface GitwiseConfig {
-  model: string;
-  maxTokens: number;
-  reviewThreshold: number;
-  conventionalCommits: boolean;
-}
+export type { GitwiseConfig } from '../core/config/config.types';
+
 
