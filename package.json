@@ -1,43 +1,43 @@
 {
  "name": "gritch",
-  "version": "1.0.0",
-  "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
-  "main": "dist/index.js",
-  "bin": {
-    "gritch": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
-    "prepare": "npm run build"
-  },
-  "keywords": [
-    "git",
-    "cli",
-    "ai",
-    "groq",
-    "commit",
-    "changelog",
-    "developer-tools"
-  ],
-  "author": "dave-8bit",
-  "license": "MIT",
-  "dependencies": {
-    "@inquirer/prompts": "^8.4.3",
-    "chalk": "^5.3.0",
-    "commander": "^12.0.0",
-    "dotenv": "^17.4.2",
-    "groq-sdk": "^0.3.3",
-    "inquirer": "^9.2.15",
-    "langchain-weather-integration": "^0.1.0",
-    "ora": "^8.0.1",
-    "simple-git": "^3.22.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.11.5",
-    "nodemon": "^3.0.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  }
+ "version": "1.0.1",
+ "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
+ "main": "dist/index.js",
+ "bin": {
+  "gritch": "./dist/index.js"
+ },
+ "scripts": {
+  "build": "tsc",
+  "dev": "ts-node src/index.ts",
+  "start": "node dist/index.js",
+  "prepare": "npm run build"
+ },
+ "keywords": [
+  "git",
+  "cli",
+  "ai",
+  "groq",
+  "commit",
+  "changelog",
+  "developer-tools"
+ ],
+ "author": "dave-8bit",
+ "license": "MIT",
+ "dependencies": {
+  "@inquirer/prompts": "^8.4.3",
+  "chalk": "^5.3.0",
+  "commander": "^12.0.0",
+  "dotenv": "^17.4.2",
+  "groq-sdk": "^0.3.3",
+  "inquirer": "^9.2.15",
+  "langchain-weather-integration": "^0.1.0",
+  "ora": "^8.0.1",
+  "simple-git": "^3.22.0"
+ },
+ "devDependencies": {
+  "@types/node": "^20.11.5",
+  "nodemon": "^3.0.3",
+  "ts-node": "^10.9.2",
+  "typescript": "^5.3.3"
+ }
 }
