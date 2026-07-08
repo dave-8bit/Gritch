@@ -1,8 +1,6 @@
 import type { AIRequest } from '../core/ai/ai.types';
 
-import { GroqProvider } from '../providers/groq/groq.provider';
-
-const provider = new GroqProvider();
+import { AIService } from '../core/ai/ai.service';
 
 export async function chat(systemPrompt: string, userPrompt: string): Promise<string> {
   const request: AIRequest = {
@@ -10,8 +8,11 @@ export async function chat(systemPrompt: string, userPrompt: string): Promise<st
     userPrompt,
   };
 
-  const response = await provider.chat(request);
+  const response = await AIService.chat(request);
   return response.content;
 }
+
+
+
 
 
