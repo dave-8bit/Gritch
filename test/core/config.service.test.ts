@@ -9,6 +9,7 @@ vi.mock('fs', () => ({
 }));
 
 import fs from 'fs';
+import type { PathLike } from 'fs';
 
 import * as configService from '../../src/core/config/config.service';
 import path from 'path';
@@ -43,7 +44,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('loads gritch.config.json when present', () => {
-    existsSyncMock.mockImplementation((p) => p === gritchConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gritchConfigPath);
     readFileSyncMock.mockImplementation(() =>
 
       JSON.stringify({ model: 'custom-model', maxTokens: 111 })
@@ -56,7 +57,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('falls back to gitwise.config.json when gritch.config.json does not exist', () => {
-    existsSyncMock.mockImplementation((p) => p === gitwiseConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gitwiseConfigPath);
     readFileSyncMock.mockImplementation(() =>
 
       JSON.stringify({ reviewThreshold: 3, conventionalCommits: false })
@@ -69,7 +70,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('prefers gritch.config.json when both config files exist', () => {
-    existsSyncMock.mockImplementation((p) => p === gritchConfigPath || p === gitwiseConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gritchConfigPath || String(p) === gitwiseConfigPath);
 
     readFileSyncMock.mockImplementation((p) =>
 
@@ -93,7 +94,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('emits expected warning for malformed JSON in legacy file', () => {
-    existsSyncMock.mockImplementation((p: string) => p === gitwiseConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gitwiseConfigPath);
     readFileSyncMock.mockImplementation(() => '{ bad');
 
     configService.loadConfig();
@@ -105,7 +106,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('emits expected deprecation warning when loading gitwise.config.json', () => {
-    existsSyncMock.mockImplementation((p: string) => p === gitwiseConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gitwiseConfigPath);
     readFileSyncMock.mockImplementation(() => JSON.stringify({ model: 'legacy-model' }));
 
     const cfg = configService.loadConfig();
@@ -114,7 +115,7 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('correctly merges partial configuration onto defaultConfig', () => {
-    existsSyncMock.mockImplementation((p: string) => p === gritchConfigPath);
+    existsSyncMock.mockImplementation((p) => String(p) === gritchConfigPath);
     readFileSyncMock.mockImplementation(() => JSON.stringify({ conventionalCommits: false }));
 
     const cfg = configService.loadConfig();
