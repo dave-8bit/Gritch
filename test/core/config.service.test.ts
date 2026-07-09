@@ -1,32 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-
 // mock fs before importing config.service
-vi.mock('fs', () => {
-  return {
+vi.mock('fs', () => ({
+  default: {
     existsSync: vi.fn(),
     readFileSync: vi.fn(),
-  };
-});
+  },
+}));
 
 import fs from 'fs';
+
 import * as configService from '../../src/core/config/config.service';
+import path from 'path';
 
-
-
-
-
-// Ensure module uses our mocked fs instance (config.service imports `fs` as default).
-
+const gritchConfigPath = path.join(process.cwd(), 'gritch.config.json');
+const gitwiseConfigPath = path.join(process.cwd(), 'gitwise.config.json');
 
 describe('ConfigService loadConfig()', () => {
-  const cwd = process.cwd();
-  const gritchPath = require('path').join(cwd, 'gritch.config.json');
-  const legacyPath = require('path').join(cwd, 'gitwise.config.json');
+  const existsSyncMock = vi.mocked(fs.existsSync);
+  const readFileSyncMock = vi.mocked(fs.readFileSync);
 
-
-  let existsSyncSpy: ReturnType<typeof vi.spyOn>;
-  let readFileSyncSpy: ReturnType<typeof vi.spyOn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -34,27 +27,25 @@ describe('ConfigService loadConfig()', () => {
 
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReset();
-    readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReset();
+    existsSyncMock.mockReset();
+    readFileSyncMock.mockReset();
   });
 
   afterEach(() => {
     warnSpy.mockRestore();
-    existsSyncSpy.mockRestore();
-    readFileSyncSpy.mockRestore();
-    vi.restoreAllMocks();
   });
 
   it('returns defaultConfig when no config files exist', () => {
-    existsSyncSpy.mockReturnValue(false);
+    existsSyncMock.mockReturnValue(false);
 
     const cfg = configService.loadConfig();
     expect(cfg).toEqual(configService.defaultConfig);
   });
 
   it('loads gritch.config.json when present', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gritch.config.json`);
-    readFileSyncSpy.mockImplementation(() =>
+    existsSyncMock.mockImplementation((p) => p === gritchConfigPath);
+    readFileSyncMock.mockImplementation(() =>
+
       JSON.stringify({ model: 'custom-model', maxTokens: 111 })
     );
 
@@ -65,8 +56,9 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('falls back to gitwise.config.json when gritch.config.json does not exist', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gitwise.config.json`);
-    readFileSyncSpy.mockImplementation(() =>
+    existsSyncMock.mockImplementation((p) => p === gitwiseConfigPath);
+    readFileSyncMock.mockImplementation(() =>
+
       JSON.stringify({ reviewThreshold: 3, conventionalCommits: false })
     );
 
@@ -77,14 +69,11 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('prefers gritch.config.json when both config files exist', () => {
-    existsSyncSpy.mockImplementation(
-      (p: string) => p === `${cwd}/gritch.config.json` || p === `${cwd}/gitwise.config.json`
-    );
+    existsSyncMock.mockImplementation((p) => p === gritchConfigPath || p === gitwiseConfigPath);
 
-    readFileSyncSpy.mockImplementation((p: string) =>
-      p === `${cwd}/gritch.config.json`
-        ? JSON.stringify({ reviewThreshold: 9 })
-        : JSON.stringify({ reviewThreshold: 1 })
+    readFileSyncMock.mockImplementation((p) =>
+
+      p === gritchConfigPath ? JSON.stringify({ reviewThreshold: 9 }) : JSON.stringify({ reviewThreshold: 1 })
     );
 
     const cfg = configService.loadConfig();
@@ -92,8 +81,9 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('returns defaults when JSON is malformed', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gritch.config.json`);
-    readFileSyncSpy.mockImplementation(() => '{ this is not valid json');
+    existsSyncMock.mockImplementation((p) => p === gritchConfigPath);
+
+    readFileSyncMock.mockImplementation(() => '{ this is not valid json');
 
     const cfg = configService.loadConfig();
     expect(cfg).toEqual(configService.defaultConfig);
@@ -103,8 +93,8 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('emits expected warning for malformed JSON in legacy file', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gitwise.config.json`);
-    readFileSyncSpy.mockImplementation(() => '{ bad');
+    existsSyncMock.mockImplementation((p: string) => p === gitwiseConfigPath);
+    readFileSyncMock.mockImplementation(() => '{ bad');
 
     configService.loadConfig();
 
@@ -115,8 +105,8 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('emits expected deprecation warning when loading gitwise.config.json', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gitwise.config.json`);
-    readFileSyncSpy.mockImplementation(() => JSON.stringify({ model: 'legacy-model' }));
+    existsSyncMock.mockImplementation((p: string) => p === gitwiseConfigPath);
+    readFileSyncMock.mockImplementation(() => JSON.stringify({ model: 'legacy-model' }));
 
     const cfg = configService.loadConfig();
     expect(cfg.model).toBe('legacy-model');
@@ -124,8 +114,8 @@ describe('ConfigService loadConfig()', () => {
   });
 
   it('correctly merges partial configuration onto defaultConfig', () => {
-    existsSyncSpy.mockImplementation((p: string) => p === `${cwd}/gritch.config.json`);
-    readFileSyncSpy.mockImplementation(() => JSON.stringify({ conventionalCommits: false }));
+    existsSyncMock.mockImplementation((p: string) => p === gritchConfigPath);
+    readFileSyncMock.mockImplementation(() => JSON.stringify({ conventionalCommits: false }));
 
     const cfg = configService.loadConfig();
     expect(cfg.conventionalCommits).toBe(false);
@@ -133,4 +123,5 @@ describe('ConfigService loadConfig()', () => {
     expect(cfg.reviewThreshold).toBe(configService.defaultConfig.reviewThreshold);
   });
 });
+
 
