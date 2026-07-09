@@ -1,6 +1,8 @@
 import type { AIProvider } from './ai.provider';
 import { GroqProvider } from '../../providers/groq/groq.provider';
 import { OpenRouterProvider } from '../../providers/openrouter/openrouter.provider';
+import { loadConfig } from '../config/config.service';
+
 
 export type ProviderId = 'groq' | 'openrouter';
 
@@ -37,8 +39,7 @@ export function getActiveProviderId(): ProviderId {
   // NOTE: loadConfig() preserves legacy config behavior.
   // If provider is omitted, defaultConfig.provider will be used.
   // This ensures backward compatibility when no provider is specified.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { loadConfig } = require('../config/config.service') as typeof import('../config/config.service');
+
   const config = loadConfig();
   if (config.provider === 'groq') return 'groq';
   if (config.provider === 'openrouter') return 'openrouter';
@@ -50,6 +51,8 @@ export function getActiveProvider(): AIProvider {
   const id = getActiveProviderId();
   return providers[id] ?? providers[defaultProviderId];
 }
+
+
 
 
 

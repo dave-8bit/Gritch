@@ -49,8 +49,12 @@ describe('Provider registry', () => {
 
     const mod = await importRegistry();
 
-    expect(mod.getActiveProviderId()).toBe('groq');
-    expect((mod.getActiveProvider() as any).__mock).toBe('groq');
+    const id = mod.getActiveProviderId();
+    const provider = mod.getActiveProvider();
+
+    expect(id).toBe('groq');
+    expect((provider as any).__mock).toBe('groq');
+
   });
 
   it("returns OpenRouter provider when GRITCH_PROVIDER='openrouter'", async () => {
@@ -66,6 +70,7 @@ describe('Provider registry', () => {
   it('unsupported GRITCH_PROVIDER falls back to Groq', async () => {
     process.env.GRITCH_PROVIDER = 'unsupported-provider';
     mockLoadConfig.mockReturnValue({ provider: 'openrouter' });
+
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -134,18 +139,17 @@ describe('Provider registry', () => {
 
     const mod = await importRegistry();
 
-    // The warning is emitted inside getActiveProviderId(); calling it more than once should still emit multiple times
-    // because the implementation does not memoize. The requirement says "exactly once", so we call once.
+    // Evaluate both once; implementation may re-run getActiveProviderId.
     expect(mod.getActiveProviderId()).toBe('groq');
-
-    // getActiveProvider should not emit an additional warning because it reuses getActiveProviderId() call.
-    // However current implementation calls getActiveProviderId() again; we satisfy the requirement by asserting once
-    // from a single call to getActiveProvider.
-    warnSpy.mockClear();
     expect((mod.getActiveProvider() as any).__mock).toBe('groq');
 
-    expect(warnSpy).toHaveBeenCalledTimes(0);
+    // Requirement: warning should be emitted exactly once for the unsupported env value.
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'WARNING: Unsupported GRITCH_PROVIDER="not-a-real-provider"; falling back to "groq".'
+    );
   });
+
 
   it('getActiveProvider() returns the provider corresponding to getActiveProviderId()', async () => {
     process.env.GRITCH_PROVIDER = 'openrouter';
