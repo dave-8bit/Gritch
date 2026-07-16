@@ -2,7 +2,9 @@ import { confirm } from '@inquirer/prompts';
 import childProcess from 'child_process';
 
 import { AIService } from '../core/ai/ai.service';
+import { buildAIRequest } from '../core/ai/ai.request-builder';
 import { commitSystemPrompt, commitUserPrompt } from '../ai/prompts';
+
 import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
 
 import {
@@ -41,14 +43,23 @@ export async function commitCommand(): Promise<void> {
     }
 
     spinner.text = 'Generating commit message with AI…';
-    const response = await AIService.chat({
-      systemPrompt: commitSystemPrompt(),
-      userPrompt: commitUserPrompt(trimDiff(diff)),
-    });
+    const response = await AIService.chat(
+      buildAIRequest({
+        systemPrompt: commitSystemPrompt(),
+        userPrompt: commitUserPrompt(trimDiff(diff)),
+      })
+    );
+
     const message = response.content;
 
 
+
+
+
     spinner.succeed();
+
+
+
 
     printHeader('Generated Commit Message');
     printInfo(message);

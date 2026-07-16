@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 import { AIService } from '../core/ai/ai.service';
+import { buildAIRequest } from '../core/ai/ai.request-builder';
 import { changelogSystemPrompt, changelogUserPrompt } from '../ai/prompts';
+
 import { getCommitsBetween, validateRepo } from '../utils/git';
 import {
   spinner,
@@ -37,11 +39,14 @@ export async function changelogCommand(from: string, to: string): Promise<void> 
     }
 
     spinner.text = 'Generating changelog with AI…';
-    const response = await AIService.chat({
-      systemPrompt: changelogSystemPrompt(),
-      userPrompt: changelogUserPrompt(commits, from, to),
-    });
+    const response = await AIService.chat(
+      buildAIRequest({
+        systemPrompt: changelogSystemPrompt(),
+        userPrompt: changelogUserPrompt(commits, from, to),
+      })
+    );
     const changelog = response.content;
+
 
     spinner.succeed();
 

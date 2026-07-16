@@ -1,6 +1,8 @@
 import chalk from 'chalk';
 import { AIService } from '../core/ai/ai.service';
+import { buildAIRequest } from '../core/ai/ai.request-builder';
 import { reviewSystemPrompt, reviewUserPrompt } from '../ai/prompts';
+
 import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
 
 import {
@@ -42,14 +44,17 @@ export async function reviewCommand(language: string): Promise<void> {
     }
 
     spinner.text = 'Reviewing your code with AI…';
-    const response = await AIService.chat({
-      systemPrompt: reviewSystemPrompt(),
-      userPrompt: reviewUserPrompt(trimDiff(diff), language),
-    });
+    const response = await AIService.chat(
+      buildAIRequest({
+        systemPrompt: reviewSystemPrompt(),
+        userPrompt: reviewUserPrompt(trimDiff(diff), language),
+      })
+    );
+
     const raw = response.content;
 
-
     spinner.succeed();
+
 
     let result: ReviewResult;
 

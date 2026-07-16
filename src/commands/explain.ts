@@ -1,7 +1,9 @@
 import chalk from 'chalk';
 import { AIService } from '../core/ai/ai.service';
+import { buildAIRequest } from '../core/ai/ai.request-builder';
 
 import { explainSystemPrompt, explainUserPrompt } from '../ai/prompts';
+
 import { getCommitDiff, validateRepo } from '../utils/git';
 import { spinner, printError, printHeader, printInfo, printDivider } from '../utils/display';
 
@@ -29,10 +31,13 @@ export async function explainCommand(hash: string): Promise<void> {
     }
 
     spinner.text = 'Analysing commit with AI…';
-    const response = await AIService.chat({
-      systemPrompt: explainSystemPrompt(),
-      userPrompt: explainUserPrompt(diff, hash),
-    });
+    const response = await AIService.chat(
+      buildAIRequest({
+        systemPrompt: explainSystemPrompt(),
+        userPrompt: explainUserPrompt(diff, hash),
+      })
+    );
+
     const explanation = response.content;
 
     spinner.succeed();
