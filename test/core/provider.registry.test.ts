@@ -15,7 +15,8 @@ vi.mock('../../src/providers/openrouter/openrouter.provider', () => {
   return { OpenRouterProvider: OpenRouterProviderMock };
 });
 
-type Provider = 'groq' | 'openrouter';
+type Provider = 'groq' | 'openrouter' | 'gemini';
+
 
 const mockLoadConfig = vi.fn();
 
@@ -44,6 +45,7 @@ describe('Provider registry', () => {
   const importRegistry = async () => import('../../src/core/ai/provider.registry');
 
   it("returns Groq provider when GRITCH_PROVIDER='groq'", async () => {
+
     process.env.GRITCH_PROVIDER = 'groq';
     mockLoadConfig.mockReturnValue({ provider: 'openrouter' });
 

@@ -1,10 +1,12 @@
 import type { AIProvider } from './ai.provider';
 import { GroqProvider } from '../../providers/groq/groq.provider';
 import { OpenRouterProvider } from '../../providers/openrouter/openrouter.provider';
+import { GeminiProvider } from '../../providers/gemini/gemini.provider';
 import { loadConfig } from '../config/config.service';
 
 
-export type ProviderId = 'groq' | 'openrouter';
+export type ProviderId = 'groq' | 'openrouter' | 'gemini';
+
 
 const defaultProviderId: ProviderId = 'groq';
 
@@ -12,7 +14,9 @@ const defaultProviderId: ProviderId = 'groq';
 const providers: Record<ProviderId, AIProvider> = {
   groq: new GroqProvider(),
   openrouter: new OpenRouterProvider(),
+  gemini: new GeminiProvider(),
 };
+
 
 export function getActiveProviderId(): ProviderId {
   // Provider selection order (highest precedence first):
@@ -23,11 +27,14 @@ export function getActiveProviderId(): ProviderId {
   const fromEnv = process.env.GRITCH_PROVIDER;
   if (fromEnv === 'groq') return 'groq';
   if (fromEnv === 'openrouter') return 'openrouter';
+  if (fromEnv === 'gemini') return 'gemini';
+
 
   // If env is explicitly set to an unsupported value, always fall back to groq.
   // Ensure warning is emitted exactly once per env value.
-  if (fromEnv && fromEnv !== 'groq' && fromEnv !== 'openrouter') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (fromEnv && fromEnv !== 'groq' && fromEnv !== 'openrouter' && fromEnv !== 'gemini') {
+
+
     const g = globalThis as any;
     const warnedKey = '__gritchUnsupportedProviderWarned:' + String(fromEnv);
     if (!g[warnedKey]) {
@@ -50,6 +57,7 @@ export function getActiveProviderId(): ProviderId {
   const config = loadConfig();
   if (config?.provider === 'groq') return 'groq';
   if (config?.provider === 'openrouter') return 'openrouter';
+  if (config?.provider === 'gemini') return 'gemini';
 
   return defaultProviderId;
 }
