@@ -1,20 +1,11 @@
 import type { AIProvider } from '../../core/ai/ai.provider';
 import type { AIRequest, AIResponse } from '../../core/ai/ai.types';
 
+import { requireApiKey } from '../../core/ai/helpers/api-key';
+import { assembleAIResponse } from '../../core/ai/helpers/response';
+import { throwFetchHttpError } from '../../core/ai/helpers/http-error';
+
 const apiKey = process.env.GEMINI_API_KEY;
-
-function assertApiKey(): string {
-  const key = apiKey ?? '';
-  if (!key) {
-    // Fail fast with a clear error.
-    throw new Error('Missing GEMINI_API_KEY');
-  }
-  return key;
-}
-
-function toAIResponse(content: string): AIResponse {
-  return { content };
-}
 
 type GeminiChatResponse = {
   candidates?: Array<{
@@ -27,7 +18,8 @@ type GeminiChatResponse = {
 
 export class GeminiProvider implements AIProvider {
   async chat(request: AIRequest): Promise<AIResponse> {
-    const key = assertApiKey();
+    const key = requireApiKey(apiKey, 'GEMINI_API_KEY');
+
 
     const model = request.model ?? '';
     if (!model) {
@@ -69,10 +61,10 @@ export class GeminiProvider implements AIProvider {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(
-        `Gemini request failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ''}`
-      );
+      await throwFetchHttpError({
+        response,
+        prefix: 'Gemini request failed',
+      });
     }
 
     const json = (await response.json()) as GeminiChatResponse;
@@ -83,7 +75,9 @@ export class GeminiProvider implements AIProvider {
         .join('')
         ?.trim() ?? '';
 
-    return toAIResponse(content);
+    return assembleAIResponse(content);
   }
 }
+
+
 

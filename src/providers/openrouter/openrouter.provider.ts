@@ -1,22 +1,13 @@
 import type { AIProvider } from '../../core/ai/ai.provider';
 import type { AIRequest, AIResponse } from '../../core/ai/ai.types';
 
+import { requireApiKey } from '../../core/ai/helpers/api-key';
+import { assembleAIResponse } from '../../core/ai/helpers/response';
+import { throwFetchHttpError } from '../../core/ai/helpers/http-error';
+
 // OpenRouter follows an OpenAI-compatible chat API.
 // We use the minimal required surface: system+user prompts.
 const apiKey = process.env.OPENROUTER_API_KEY;
-
-function toAIResponse(content: string): AIResponse {
-  return { content };
-}
-
-function assertApiKey(): string {
-  const key = apiKey ?? '';
-  if (!key) {
-    // Avoid pulling in a shared error utility; keep behavior consistent with GroqProvider.
-    throw new Error('Missing OPENROUTER_API_KEY');
-  }
-  return key;
-}
 
 type OpenRouterChatCompletionResponse = {
   choices?: Array<{
@@ -29,7 +20,8 @@ type OpenRouterChatCompletionResponse = {
 
 export class OpenRouterProvider implements AIProvider {
   async chat(request: AIRequest): Promise<AIResponse> {
-    const key = assertApiKey();
+    const key = requireApiKey(apiKey, 'OPENROUTER_API_KEY');
+
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -48,14 +40,17 @@ export class OpenRouterProvider implements AIProvider {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`OpenRouter request failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ''}`);
+      await throwFetchHttpError({
+        response,
+        prefix: 'OpenRouter request failed',
+      });
     }
 
     const json = (await response.json()) as OpenRouterChatCompletionResponse;
     const content = json.choices?.[0]?.message?.content ?? '';
 
-    return toAIResponse(content);
+    return assembleAIResponse(content);
   }
 }
+
 
