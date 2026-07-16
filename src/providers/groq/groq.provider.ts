@@ -29,9 +29,29 @@ export class GroqProvider implements AIProvider {
     });
 
     const content = completion.choices?.[0]?.message?.content ?? '';
-    return assembleAIResponse(content);
+
+    const metadata = {
+      provider: 'groq',
+      model: completion.model,
+      finishReason: completion.choices?.[0]?.finish_reason,
+      usage: completion.usage
+        ? {
+            promptTokens: completion.usage.prompt_tokens,
+            completionTokens: completion.usage.completion_tokens,
+            totalTokens: completion.usage.total_tokens,
+          }
+        : undefined,
+    };
+
+    // Only include fields that are actually available.
+    const filteredMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([, v]) => v !== undefined)
+    ) as typeof metadata;
+
+    return assembleAIResponse(content, filteredMetadata);
   }
 }
+
 
 
 

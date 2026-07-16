@@ -75,9 +75,27 @@ export class GeminiProvider implements AIProvider {
         .join('')
         ?.trim() ?? '';
 
-    return assembleAIResponse(content);
+    const metadata = {
+      provider: 'gemini',
+      model: (json as any).model,
+      finishReason: json.candidates?.[0]?.finishReason,
+      usage: (json as any).usageMetadata
+        ? {
+            inputTokens: (json as any).usageMetadata.promptTokenCount,
+            outputTokens: (json as any).usageMetadata.candidatesTokenCount,
+            totalTokens: (json as any).usageMetadata.totalTokenCount,
+          }
+        : undefined,
+    };
+
+    const filteredMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([, v]) => v !== undefined)
+    ) as typeof metadata;
+
+    return assembleAIResponse(content, filteredMetadata);
   }
 }
+
 
 
 

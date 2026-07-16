@@ -10,13 +10,21 @@ import { throwFetchHttpError } from '../../core/ai/helpers/http-error';
 const apiKey = process.env.OPENROUTER_API_KEY;
 
 type OpenRouterChatCompletionResponse = {
+  model?: string;
   choices?: Array<{
     message?: {
       role?: string;
       content?: string;
     };
+    finish_reason?: string;
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 };
+
 
 export class OpenRouterProvider implements AIProvider {
   async chat(request: AIRequest): Promise<AIResponse> {
@@ -49,8 +57,26 @@ export class OpenRouterProvider implements AIProvider {
     const json = (await response.json()) as OpenRouterChatCompletionResponse;
     const content = json.choices?.[0]?.message?.content ?? '';
 
-    return assembleAIResponse(content);
+    const metadata = {
+      provider: 'openrouter',
+      model: (json as any).model,
+      finishReason: json.choices?.[0]?.finish_reason,
+      usage: (json as any).usage
+        ? {
+            promptTokens: (json as any).usage.prompt_tokens,
+            completionTokens: (json as any).usage.completion_tokens,
+            totalTokens: (json as any).usage.total_tokens,
+          }
+        : undefined,
+    };
+
+    const filteredMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([, v]) => v !== undefined)
+    ) as typeof metadata;
+
+    return assembleAIResponse(content, filteredMetadata);
   }
 }
+
 
 
