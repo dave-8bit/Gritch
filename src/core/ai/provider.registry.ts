@@ -24,14 +24,20 @@ export function getActiveProviderId(): ProviderId {
   if (fromEnv === 'groq') return 'groq';
   if (fromEnv === 'openrouter') return 'openrouter';
 
+  // If env is explicitly set to an unsupported value, always fall back to groq.
+  // Ensure warning is emitted exactly once per env value.
   if (fromEnv && fromEnv !== 'groq' && fromEnv !== 'openrouter') {
-    // Preserve behavior by falling back to 'groq'.
-    // Keep this warning lightweight to avoid changing runtime semantics.
-    console.warn(
-      `WARNING: Unsupported GRITCH_PROVIDER="${fromEnv}"; falling back to "groq".`
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g = globalThis as any;
+    const warnedKey = '__gritchUnsupportedProviderWarned:' + String(fromEnv);
+    if (!g[warnedKey]) {
+      g[warnedKey] = true;
+      console.warn(
+        `WARNING: Unsupported GRITCH_PROVIDER="${fromEnv}"; falling back to "groq".`
+      );
+    }
+    return defaultProviderId;
   }
-
 
 
 
@@ -40,9 +46,10 @@ export function getActiveProviderId(): ProviderId {
   // If provider is omitted, defaultConfig.provider will be used.
   // This ensures backward compatibility when no provider is specified.
 
+
   const config = loadConfig();
-  if (config.provider === 'groq') return 'groq';
-  if (config.provider === 'openrouter') return 'openrouter';
+  if (config?.provider === 'groq') return 'groq';
+  if (config?.provider === 'openrouter') return 'openrouter';
 
   return defaultProviderId;
 }
