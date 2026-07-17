@@ -73,6 +73,8 @@ function scoreFromDepsOrDevDeps(pkgDeps: Set<string>, rule: Rule): number {
   return score;
 }
 
+
+
 function scoreFromScripts(scripts: Record<string, string> | undefined, rule: Rule): { score: number; hits: string[] } {
   if (!scripts) return { score: 0, hits: [] };
   let score = 0;
@@ -250,9 +252,15 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
     }
   }
 
-  const scored = Array.from(scores.entries())
+  // Only treat tools with positive score as candidates.
+  // If nothing is evidenced (no bumps), confidence must be 0.
+  const scoredAll = Array.from(scores.entries())
     .map(([tool, score]) => ({ tool, score }))
     .sort((a, b) => b.score - a.score);
+
+  const scored = scoredAll.filter((s) => s.score > 0);
+
+
 
   if (scored.length === 0) {
     return {
@@ -275,14 +283,16 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
   }
 
   // If there is no evidence collected at all, confidence must be 0.
+  // Also ensure the response doesn't name a primary tool when confidence is 0.
   if (configEvidence.length === 0) {
     return {
       primary: 'Vite',
       secondary: [],
       confidence: 0,
-      evidence: ['No build tool evidence found'],
+      evidence: [],
     };
   }
+
 
   const positive = scored.filter((s) => s.score > 0);
 
@@ -305,7 +315,8 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
   return {
     primary,
     secondary: detected.length > 1 ? secondary : [],
-    confidence: confidence > 0 ? confidence : 0,
+    confidence: configEvidence.length === 0 ? 0 : confidence > 0 ? confidence : 0,
+
     evidence: configEvidence.length ? configEvidence.slice(0, 40) : ['No build tool evidence found'],
   };
 }
