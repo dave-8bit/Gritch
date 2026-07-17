@@ -2,7 +2,8 @@ import path from 'path';
 
 import type { InventoryResult } from './types';
 import { buildFileInventory } from './inventory';
-import { fileExists, readJsonSafe } from './fs';
+import { fileExists } from './fs';
+import { loadDependencies, type DependencyIndex } from './dependencies';
 
 export type FrameworkCategory = 'frontend' | 'backend' | 'fullstack';
 
@@ -188,9 +189,9 @@ function normalizeInventoryPaths(inv: InventoryResult): Set<string> {
   return new Set(inv.files.map((f) => toPosix(f.path)));
 }
 
-function hasDep(depSet: Set<string>, dep: string): boolean {
-  if (depSet.has(dep)) return true;
-  for (const d of depSet) {
+function hasDep(index: DependencyIndex, dep: string): boolean {
+  if (index.all.has(dep)) return true;
+  for (const d of index.all) {
     if (d === dep) return true;
     if (d.startsWith(dep + '/')) return true;
   }
@@ -224,14 +225,7 @@ export function detectFrameworksWithInventory(rootPath: string, inv: InventoryRe
   const invPaths = normalizeInventoryPaths(inv);
   const configEvidence: string[] = [];
 
-  const pkg = readJsonSafe<{ dependencies?: Record<string, string>; devDependencies?: Record<string, string> }>(
-    path.join(rootPath, 'package.json')
-  );
-
-  const deps = new Set<string>([
-    ...(pkg?.dependencies ? Object.keys(pkg.dependencies) : []),
-    ...(pkg?.devDependencies ? Object.keys(pkg.devDependencies) : []),
-  ]);
+  const deps = loadDependencies(rootPath);
 
   const scores = new Map<Exclude<FrameworkId, 'unknown'>, number>();
 

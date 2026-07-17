@@ -2,7 +2,8 @@ import path from 'path';
 
 import type { InventoryResult } from './types';
 import { buildFileInventory } from './inventory';
-import { fileExists, readJsonSafe, normalizeToPosix } from './fs';
+import { fileExists, normalizeToPosix } from './fs';
+import { loadDependencies, hasDependency, type DependencyIndex } from './dependencies';
 
 export type BuildToolId =
   | 'Vite'
@@ -44,8 +45,8 @@ function normalizeInventoryPaths(inv: InventoryResult): Set<string> {
   return new Set(inv.files.map((f) => toPosix(f.path)));
 }
 
-function hasDep(depSet: Set<string>, dep: string): boolean {
-  return depSet.has(dep);
+function hasDep(index: DependencyIndex, dep: string): boolean {
+  return hasDependency(index, dep);
 }
 
 function scoreFromScripts(scripts: Record<string, string> | undefined, rule: Rule): { score: number; hits: string[] } {
@@ -143,7 +144,7 @@ const RULES: Rule[] = [
     tool: 'Parcel',
     deps: ['parcel'],
     scripts: ['parcel'],
-    configFiles: ['.parcelrc', 'parcel.config.js', 'parcel.config.ts', 'package.json'],
+    configFiles: ['.parcelrc', 'parcel.config.js', 'parcel.config.ts'],
     weights: { dep: 1.1, script: 0.7, config: 0.6 },
   },
   {
@@ -193,18 +194,8 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
   const invPaths = normalizeInventoryPaths(inv);
   const configEvidence: string[] = [];
 
-  const pkg = readJsonSafe<{
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    scripts?: Record<string, string>;
-  }>(path.join(rootPath, 'package.json'));
-
-  const deps = new Set<string>([
-    ...(pkg?.dependencies ? Object.keys(pkg.dependencies) : []),
-    ...(pkg?.devDependencies ? Object.keys(pkg.devDependencies) : []),
-  ]);
-
-  const scripts = pkg?.scripts;
+  const deps = loadDependencies(rootPath);
+  const scripts = deps.scripts;
 
   const scores = new Map<BuildToolId, number>();
   let evidenceFound = false;
@@ -243,7 +234,7 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
       primary: undefined,
       secondary: [],
       confidence: 0,
-      evidence: [],
+      evidence: ['No build tool evidence found'],
     };
   }
 
