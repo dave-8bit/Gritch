@@ -14,31 +14,26 @@ export type BuildToolId =
   | 'Rspack'
   | 'Turbopack'
   | 'Babel'
-  | 'SWC'
-  | 'unknown';
+  | 'SWC';
 
 export interface BuildToolDetectionResult {
-  primary: Exclude<BuildToolId, 'unknown'>;
-  secondary: Exclude<BuildToolId, 'unknown'>[];
+  primary?: BuildToolId;
+  secondary: BuildToolId[];
   confidence: number; // 0..1
   evidence: string[];
 }
 
-type Score = { tool: Exclude<BuildToolId, 'unknown'>; score: number };
-
-type EvidenceWeight = {
-  dep: number;
-  script: number;
-  config: number;
-};
-
 type Rule = {
-  tool: Exclude<BuildToolId, 'unknown'>;
-  aliasesDeps: string[]; // exact dependency names/prefixes
-  aliasesScripts: string[]; // regex-ish substrings
-  configFiles?: string[]; // exact paths relative to root
-  configHints?: { substr: string; weight: number }[];
-  weights: EvidenceWeight;
+  tool: BuildToolId;
+  deps: string[];
+  scripts: string[];
+  configFiles: string[];
+  /** Score weights; evidence comes only from rules with actual matches. */
+  weights: {
+    dep: number;
+    script: number;
+    config: number;
+  };
 };
 
 function toPosix(p: string): string {
@@ -49,39 +44,18 @@ function normalizeInventoryPaths(inv: InventoryResult): Set<string> {
   return new Set(inv.files.map((f) => toPosix(f.path)));
 }
 
-function hasDep(depSet: Set<string>, alias: string): boolean {
-  if (depSet.has(alias)) return true;
-
-  // Only treat aliases ending with '/' as prefix matches.
-  if (alias.endsWith('/')) {
-    for (const d of depSet) {
-      if (d.startsWith(alias)) return true;
-    }
-    return false;
-  }
-
-  // For scoped-style prefixes (e.g. "@swc/") callers should pass an alias ending with '/'.
-  // Otherwise do not do prefix matches to avoid false positives like "swc" matching "@swc/core".
-  return false;
+function hasDep(depSet: Set<string>, dep: string): boolean {
+  return depSet.has(dep);
 }
-
-function scoreFromDepsOrDevDeps(pkgDeps: Set<string>, rule: Rule): number {
-  let score = 0;
-  for (const a of rule.aliasesDeps) {
-    if (hasDep(pkgDeps, a)) score += rule.weights.dep;
-  }
-  return score;
-}
-
-
 
 function scoreFromScripts(scripts: Record<string, string> | undefined, rule: Rule): { score: number; hits: string[] } {
   if (!scripts) return { score: 0, hits: [] };
+
   let score = 0;
   const hits: string[] = [];
   for (const [name, cmd] of Object.entries(scripts)) {
     const hay = `${name} ${cmd}`.toLowerCase();
-    for (const s of rule.aliasesScripts) {
+    for (const s of rule.scripts) {
       const needle = s.toLowerCase();
       if (hay.includes(needle)) {
         score += rule.weights.script;
@@ -89,6 +63,7 @@ function scoreFromScripts(scripts: Record<string, string> | undefined, rule: Rul
       }
     }
   }
+
   return { score, hits };
 }
 
@@ -98,30 +73,30 @@ function hasConfigFile(invPaths: Set<string>, rootPath: string, rel: string): bo
   return fileExists(path.join(rootPath, p));
 }
 
-function scoreFromConfigFiles(invPaths: Set<string>, rootPath: string, rule: Rule): { score: number; hits: string[] } {
-  if (!rule.configFiles || rule.configFiles.length === 0) return { score: 0, hits: [] };
+function scoreFromConfigFiles(
+  invPaths: Set<string>,
+  rootPath: string,
+  rule: Rule,
+): { score: number; hits: string[] } {
   let score = 0;
   const hits: string[] = [];
 
   for (const cf of rule.configFiles) {
     if (hasConfigFile(invPaths, rootPath, cf)) {
-      // Avoid adding evidence based purely on incidental presence; only score when weights.config > 0.
-      if (rule.weights.config > 0) {
-        score += rule.weights.config;
-        if (hits.length < 10) hits.push(`config file: ${cf}`);
-      }
+      score += rule.weights.config;
+      if (hits.length < 10) hits.push(`config file: ${cf}`);
     }
   }
 
   return { score, hits };
 }
 
-function computeConfidence(scored: Score[]): number {
+function computeConfidence(scored: Array<{ tool: BuildToolId; score: number }>): number {
   if (scored.length === 0) return 0;
   const total = scored.reduce((sum, s) => sum + s.score, 0);
-  const primary = scored[0];
   if (total <= 0) return 0;
 
+  const primary = scored[0];
   const ratio = primary.score / total;
   const second = scored[1]?.score ?? 0;
   const closenessPenalty = second > 0 && (primary.score - second) / primary.score < 0.2 ? 0.12 : 0;
@@ -131,72 +106,78 @@ function computeConfidence(scored: Score[]): number {
 const RULES: Rule[] = [
   {
     tool: 'Vite',
-    aliasesDeps: ['vite'],
-    aliasesScripts: ['vite'],
+    deps: ['vite'],
+    scripts: ['vite'],
     configFiles: ['vite.config.js', 'vite.config.mjs', 'vite.config.ts'],
     weights: { dep: 1.4, script: 0.9, config: 1.2 },
   },
   {
     tool: 'Webpack',
-    aliasesDeps: ['webpack', 'webpack-cli'],
-    aliasesScripts: ['webpack'],
+    deps: ['webpack', 'webpack-cli'],
+    scripts: ['webpack'],
     configFiles: ['webpack.config.js', 'webpack.config.mjs', 'webpack.config.ts'],
     weights: { dep: 1.2, script: 0.9, config: 1.2 },
   },
   {
     tool: 'Rollup',
-    aliasesDeps: ['rollup', '@rollup/plugin-', 'rollup-plugin-'],
-    aliasesScripts: ['rollup'],
+    deps: ['rollup'],
+    scripts: ['rollup'],
     configFiles: ['rollup.config.js', 'rollup.config.mjs', 'rollup.config.ts'],
     weights: { dep: 1.2, script: 0.8, config: 1.0 },
   },
   {
     tool: 'esbuild',
-    aliasesDeps: ['esbuild'],
-    aliasesScripts: ['esbuild'],
-    configHints: [{ substr: 'esbuild', weight: 1 }],
+    deps: ['esbuild'],
+    scripts: ['esbuild'],
+    configFiles: [],
     weights: { dep: 1.3, script: 0.7, config: 0 },
   },
   {
     tool: 'tsup',
-    aliasesDeps: ['tsup'],
-    aliasesScripts: ['tsup'],
+    deps: ['tsup'],
+    scripts: ['tsup'],
     configFiles: ['tsup.config.js', 'tsup.config.mjs', 'tsup.config.ts'],
     weights: { dep: 1.4, script: 0.8, config: 1.1 },
   },
   {
     tool: 'Parcel',
-    aliasesDeps: ['parcel'],
-    aliasesScripts: ['parcel'],
+    deps: ['parcel'],
+    scripts: ['parcel'],
     configFiles: ['.parcelrc', 'parcel.config.js', 'parcel.config.ts', 'package.json'],
     weights: { dep: 1.1, script: 0.7, config: 0.6 },
   },
   {
     tool: 'Rspack',
-    aliasesDeps: ['@rspack/core', 'rspack'],
-    aliasesScripts: ['rspack'],
+    deps: ['rspack', '@rspack/core'],
+    scripts: ['rspack'],
     configFiles: ['rspack.config.js', 'rspack.config.mjs', 'rspack.config.ts'],
     weights: { dep: 1.3, script: 0.7, config: 1.0 },
   },
   {
     tool: 'Turbopack',
-    // Do NOT infer from next/nextjs. Require explicit evidence.
-    aliasesDeps: ['turbopack'],
-    aliasesScripts: ['turbopack'],
+    deps: ['turbopack'],
+    scripts: ['turbopack'],
     configFiles: ['turbopack.config.js', 'turbopack.config.ts'],
     weights: { dep: 1.3, script: 1.0, config: 1.0 },
   },
   {
     tool: 'Babel',
-    aliasesDeps: ['@babel/core', '@babel/cli', 'babel-core', 'babel'],
-    aliasesScripts: ['babel'],
-    configFiles: ['babel.config.js', 'babel.config.mjs', 'babel.config.ts', '.babelrc', '.babelrc.js', '.babelrc.json'],
+    deps: ['@babel/core', '@babel/cli'],
+    scripts: ['babel'],
+    configFiles: [
+      'babel.config.js',
+      'babel.config.mjs',
+      'babel.config.ts',
+      '.babelrc',
+      '.babelrc.js',
+      '.babelrc.json',
+    ],
     weights: { dep: 1.1, script: 0.6, config: 1.1 },
   },
   {
     tool: 'SWC',
-    aliasesDeps: ['@swc/core', '@swc/helpers', '@swc/'],
-    aliasesScripts: ['swc'],
+    deps: ['@swc/core', '@swc/helpers'],
+    scripts: ['swc'],
     configFiles: ['.swcrc'],
     weights: { dep: 1.2, script: 0.6, config: 1.2 },
   },
@@ -225,99 +206,60 @@ export function detectBuildToolsWithInventory(rootPath: string, inv: InventoryRe
 
   const scripts = pkg?.scripts;
 
-  const scores = new Map<Exclude<BuildToolId, 'unknown'>, number>();
-  const bump = (tool: Exclude<BuildToolId, 'unknown'>, delta: number, evidence: string) => {
+  const scores = new Map<BuildToolId, number>();
+  let evidenceFound = false;
+  const bump = (tool: BuildToolId, delta: number, evidence: string) => {
+    evidenceFound = true;
     scores.set(tool, (scores.get(tool) ?? 0) + delta);
     if (configEvidence.length < 50) configEvidence.push(evidence);
   };
 
+
   for (const rule of RULES) {
-    // deps
-    for (const a of rule.aliasesDeps) {
-      if (hasDep(deps, a)) {
-        bump(rule.tool, rule.weights.dep, `package.json dep: ${a}`);
+    for (const d of rule.deps) {
+      if (hasDep(deps, d)) {
+        bump(rule.tool, rule.weights.dep, `package.json dep: ${d}`);
       }
     }
 
-    // scripts
-    const { score, hits } = scoreFromScripts(scripts, rule);
-    if (score > 0) {
+    const { score: scriptScore, hits } = scoreFromScripts(scripts, rule);
+    if (scriptScore > 0) {
       for (const h of hits) bump(rule.tool, rule.weights.script, h);
     }
 
-    // config files
     const { score: cfgScore, hits: cfgHits } = scoreFromConfigFiles(invPaths, rootPath, rule);
     if (cfgScore > 0) {
       for (const h of cfgHits) bump(rule.tool, rule.weights.config, h);
     }
   }
 
-  // Only treat tools with positive score as candidates.
-  // If nothing is evidenced (no bumps), confidence must be 0.
-  const scoredAll = Array.from(scores.entries())
+  const scored = Array.from(scores.entries())
     .map(([tool, score]) => ({ tool, score }))
+    .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score);
-
-  const scored = scoredAll.filter((s) => s.score > 0);
-
-
 
   if (scored.length === 0) {
     return {
-      primary: 'Vite',
-      secondary: [],
-      confidence: 0,
-      evidence: ['No build tool evidence found'],
-    };
-  }
-
-  // Defensive: if everything scored is 0, treat as no evidence.
-  const hasPositiveScore = scored.some((s) => s.score > 0);
-  if (!hasPositiveScore) {
-    return {
-      primary: 'Vite',
-      secondary: [],
-      confidence: 0,
-      evidence: ['No build tool evidence found'],
-    };
-  }
-
-  // If there is no evidence collected at all, confidence must be 0.
-  // Also ensure the response doesn't name a primary tool when confidence is 0.
-  if (configEvidence.length === 0) {
-    return {
-      primary: 'Vite',
+      primary: undefined,
       secondary: [],
       confidence: 0,
       evidence: [],
     };
   }
 
-
-  const positive = scored.filter((s) => s.score > 0);
-
-  // If we only have zero-score entries, treat as no evidence.
-  if (positive.length === 0) {
-    return {
-      primary: 'Vite',
-      secondary: [],
-      confidence: 0,
-      evidence: ['No build tool evidence found'],
-    };
-  }
-
+  const positive = scored;
   const primary = positive[0].tool;
   const detected = positive.filter((s) => s.score >= positive[0].score * 0.55).map((s) => s.tool);
   const secondary = positive.filter((s) => s.tool !== primary).slice(0, 4).map((s) => s.tool);
 
   const confidence = computeConfidence(scored);
 
+  // Evidence must correspond to actual evidence bumps.
   return {
     primary,
     secondary: detected.length > 1 ? secondary : [],
-    confidence: configEvidence.length === 0 ? 0 : confidence > 0 ? confidence : 0,
-
-    evidence: configEvidence.length ? configEvidence.slice(0, 40) : ['No build tool evidence found'],
+    confidence,
+    evidence: configEvidence.slice(0, 40),
   };
 }
 
