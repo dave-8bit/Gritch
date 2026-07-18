@@ -9,7 +9,8 @@ import { detectFrameworksWithInventory, type FrameworkDetectionResult } from './
 import { detectBuildToolsWithInventory, type BuildToolDetectionResult } from './buildTool';
 import { detectPackageManagerWithInventory, type PackageManagerDetectionResult } from './packageManager';
 import { detectTestingFrameworksWithInventory, type TestingFrameworkDetectionResult } from './testing';
-
+import { detectLintingWithInventory, type LintingDetectionResult } from './linting';
+import { detectFormattingWithInventory, type FormattingDetectionResult } from './linting';
 
 export interface InventorySummary {
   /** Number of files discovered by the shared inventory walk. */
@@ -36,7 +37,10 @@ export interface RepositoryProfile {
   packageManager: PackageManagerDetectionResult;
   dependencies: DependencyIndex;
   testing: TestingFrameworkDetectionResult;
+  linting: LintingDetectionResult;
+  formatting: FormattingDetectionResult;
 }
+
 
 
 function summarizeInventory(inv: InventoryResult): InventorySummary {
@@ -72,6 +76,8 @@ export function inspectRepository(rootPath?: string): RepositoryProfile {
     packageManager: detectPackageManagerWithInventory(root, inv),
     dependencies: loadDependencies(root),
     testing: detectTestingFrameworksWithInventory(root, inv),
+    linting: detectLintingWithInventory(root, inv),
+    formatting: detectFormattingWithInventory(root, inv),
   };
 
 }
