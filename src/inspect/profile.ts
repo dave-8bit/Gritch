@@ -13,9 +13,11 @@ import { detectLintingWithInventory, type LintingDetectionResult } from './linti
 import { detectFormattingWithInventory, type FormattingDetectionResult } from './linting';
 import { detectDatabaseWithInventory, type DatabaseDetectionResult } from './database';
 import { detectOrmWithInventory, type OrmDetectionResult } from './database';
+import { detectArchitectureWithInventory, type ArchitectureDetectionResult } from './architecture';
 
 
 export interface InventorySummary {
+
   /** Number of files discovered by the shared inventory walk. */
 
   fileCount: number;
@@ -44,7 +46,9 @@ export interface RepositoryProfile {
   formatting: FormattingDetectionResult;
   database: DatabaseDetectionResult;
   orm: OrmDetectionResult;
+  architecture: import('./architecture').ArchitectureDetectionResult;
 }
+
 
 
 
@@ -86,6 +90,7 @@ export function inspectRepository(rootPath?: string): RepositoryProfile {
     formatting: detectFormattingWithInventory(root, inv),
     database: detectDatabaseWithInventory(root, inv),
     orm: detectOrmWithInventory(root, inv),
+    architecture: detectArchitectureWithInventory(root, inv),
   };
 
 }
