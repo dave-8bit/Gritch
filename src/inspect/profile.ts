@@ -11,6 +11,9 @@ import { detectPackageManagerWithInventory, type PackageManagerDetectionResult }
 import { detectTestingFrameworksWithInventory, type TestingFrameworkDetectionResult } from './testing';
 import { detectLintingWithInventory, type LintingDetectionResult } from './linting';
 import { detectFormattingWithInventory, type FormattingDetectionResult } from './linting';
+import { detectDatabaseWithInventory, type DatabaseDetectionResult } from './database';
+import { detectOrmWithInventory, type OrmDetectionResult } from './database';
+
 
 export interface InventorySummary {
   /** Number of files discovered by the shared inventory walk. */
@@ -39,7 +42,10 @@ export interface RepositoryProfile {
   testing: TestingFrameworkDetectionResult;
   linting: LintingDetectionResult;
   formatting: FormattingDetectionResult;
+  database: DatabaseDetectionResult;
+  orm: OrmDetectionResult;
 }
+
 
 
 
@@ -78,6 +84,8 @@ export function inspectRepository(rootPath?: string): RepositoryProfile {
     testing: detectTestingFrameworksWithInventory(root, inv),
     linting: detectLintingWithInventory(root, inv),
     formatting: detectFormattingWithInventory(root, inv),
+    database: detectDatabaseWithInventory(root, inv),
+    orm: detectOrmWithInventory(root, inv),
   };
 
 }
