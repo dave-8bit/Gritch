@@ -8,8 +8,10 @@ import { commitCommand } from './commands/commit';
 import { reviewCommand } from './commands/review';
 import { changelogCommand } from './commands/changelog';
 import { explainCommand } from './commands/explain';
+import { inspectCommand } from './commands/inspect';
 
 const program = new Command();
+
 
 program
   .name('gritch')
@@ -46,7 +48,15 @@ program
     void explainCommand(hash);
   });
 
+program
+  .command('inspect [rootPath]')
+  .description('Inspect a repository and print detected technologies')
+  .action((rootPath: string | undefined) => {
+    inspectCommand(rootPath);
+  });
+
 program.parse(process.argv);
+
 
 if (process.argv.slice(2).length === 0) {
   // Welcome banner (when running without a subcommand)

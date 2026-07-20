@@ -1,7 +1,8 @@
-import path from 'path';
 
+import path from 'path';
 import type { InventoryResult } from './types';
 import { resolveRepoRoot } from './root';
+
 import { buildFileInventory } from './inventory';
 import { loadDependencies, type DependencyIndex } from './dependencies';
 import { detectLanguages, type LanguageDetectionResult } from './language';
