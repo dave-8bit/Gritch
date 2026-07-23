@@ -68,16 +68,28 @@ export function explainSystemPrompt(): string {
   ].join('\n');
 }
 
-export function explainUserPrompt(diff: string, message: string): string {
-  return [
-    'Explain the following commit.',
-    '',
-    `Commit message: ${message}`,
-    '',
-    'Diff:',
-    diff,
-    '',
+export function explainUserPrompt(
+  diff: string,
+  message: string,
+  repoContext?: string,
+): string {
+  const parts: string[] = [];
+
+  if (repoContext) {
+    parts.push('Repository Context:');
+    parts.push(repoContext);
+    parts.push('');
+  }
+
+  parts.push(`Commit message: ${message}`);
+  parts.push('');
+  parts.push('Diff:');
+  parts.push(diff);
+  parts.push('');
+  parts.push(
     'In your explanation, clearly cover: (1) what changed, (2) why it was likely needed, (3) any noteworthy impacts or follow-ups.',
-  ].join('\n');
+  );
+
+  return parts.join('\n');
 }
 
