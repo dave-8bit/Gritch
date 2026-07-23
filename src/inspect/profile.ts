@@ -11,10 +11,12 @@ import { detectBuildToolsWithInventory, type BuildToolDetectionResult } from './
 import { detectPackageManagerWithInventory, type PackageManagerDetectionResult } from './packageManager';
 import { detectTestingFrameworksWithInventory, type TestingFrameworkDetectionResult } from './testing';
 import { detectLintingWithInventory, type LintingDetectionResult } from './linting';
-import { detectFormattingWithInventory, type FormattingDetectionResult } from './linting';
+import { detectFormattingWithInventory, type FormattingDetectionResult } from './linting'
 import { detectDatabaseWithInventory, type DatabaseDetectionResult } from './database';
 import { detectOrmWithInventory, type OrmDetectionResult } from './database';
 import { detectArchitectureWithInventory, type ArchitectureDetectionResult } from './architecture';
+import { detectHealthWithInventory } from './health';
+import type { RepositoryHealthResult } from './types';
 
 
 export interface InventorySummary {
@@ -48,6 +50,7 @@ export interface RepositoryProfile {
   database: DatabaseDetectionResult;
   orm: OrmDetectionResult;
   architecture: import('./architecture').ArchitectureDetectionResult;
+  health: RepositoryHealthResult;
 }
 
 
@@ -92,6 +95,7 @@ export function inspectRepository(rootPath?: string): RepositoryProfile {
     database: detectDatabaseWithInventory(root, inv),
     orm: detectOrmWithInventory(root, inv),
     architecture: detectArchitectureWithInventory(root, inv),
+    health: detectHealthWithInventory(root, inv),
   };
 
 }
