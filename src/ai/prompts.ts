@@ -9,13 +9,21 @@ export function commitSystemPrompt(): string {
   ].join('\n');
 }
 
-export function commitUserPrompt(diff: string): string {
-  return [
-    'Here is the git diff. Generate ONE Conventional Commit message for it.',
-    '',
-    'Diff:',
-    diff,
-  ].join('\n');
+export function commitUserPrompt(diff: string, repoContext?: string): string {
+  const parts: string[] = [];
+
+  if (repoContext) {
+    parts.push('Repository Context:');
+    parts.push(repoContext);
+    parts.push('');
+  }
+
+  parts.push('Here is the git diff. Generate ONE Conventional Commit message for it.');
+  parts.push('');
+  parts.push('Diff:');
+  parts.push(diff);
+
+  return parts.join('\n');
 }
 
 export function reviewSystemPrompt(): string {

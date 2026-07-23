@@ -4,6 +4,8 @@ import childProcess from 'child_process';
 import { AIService } from '../core/ai/ai.service';
 import { buildAIRequest } from '../core/ai/ai.request-builder';
 import { commitSystemPrompt, commitUserPrompt } from '../ai/prompts';
+import { buildRepositoryContext } from '../ai/profile-context';
+import { inspectRepository } from '../inspect/profile';
 
 import { getStagedDiff, trimDiff, validateRepo } from '../utils/git';
 
@@ -42,24 +44,25 @@ export async function commitCommand(): Promise<void> {
       return;
     }
 
+    let repoContext: string | undefined;
+    try {
+      const profile = inspectRepository();
+      repoContext = buildRepositoryContext(profile);
+    } catch {
+      // Inspection failure is non-fatal — fall back to current behavior
+    }
+
     spinner.text = 'Generating commit message with AI…';
     const response = await AIService.chat(
       buildAIRequest({
         systemPrompt: commitSystemPrompt(),
-        userPrompt: commitUserPrompt(trimDiff(diff)),
+        userPrompt: commitUserPrompt(trimDiff(diff), repoContext),
       })
     );
 
     const message = response.content;
 
-
-
-
-
     spinner.succeed();
-
-
-
 
     printHeader('Generated Commit Message');
     printInfo(message);
