@@ -29,15 +29,27 @@ export function reviewSystemPrompt(): string {
   ].join('\n');
 }
 
-export function reviewUserPrompt(diff: string, language: string): string {
-  return [
-    `Review the following code diff. Language: ${language}.`,
-    '',
-    'Diff:',
-    diff,
-    '',
-    'Respond with ONLY the exact JSON shape specified by the review system prompt.',
-  ].join('\n');
+export function reviewUserPrompt(
+  diff: string,
+  language: string,
+  repoContext?: string,
+): string {
+  const parts: string[] = [];
+
+  if (repoContext) {
+    parts.push('Repository Context:');
+    parts.push(repoContext);
+    parts.push('');
+  }
+
+  parts.push(`Review the following code diff. Language: ${language}.`);
+  parts.push('');
+  parts.push('Diff:');
+  parts.push(diff);
+  parts.push('');
+  parts.push('Respond with ONLY the exact JSON shape specified by the review system prompt.');
+
+  return parts.join('\n');
 }
 
 export function changelogSystemPrompt(): string {
