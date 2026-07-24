@@ -3,8 +3,7 @@ import { AIService } from '../core/ai/ai.service';
 import { buildAIRequest } from '../core/ai/ai.request-builder';
 
 import { explainSystemPrompt, explainUserPrompt } from '../ai/prompts';
-import { buildRepositoryContext } from '../ai/profile-context';
-import { inspectRepository } from '../inspect/profile';
+import { getRepositoryContext } from '../ai/get-repository-context';
 
 import { getCommitDiff, validateRepo } from '../utils/git';
 import { spinner, printError, printHeader, printInfo, printDivider } from '../utils/display';
@@ -32,13 +31,7 @@ export async function explainCommand(hash: string): Promise<void> {
       return;
     }
 
-    let repoContext: string | undefined;
-    try {
-      const profile = inspectRepository();
-      repoContext = buildRepositoryContext(profile);
-    } catch {
-      // Inspection failure is non-fatal — fall back to current behavior
-    }
+    const repoContext = getRepositoryContext();
 
     spinner.text = 'Analysing commit with AI…';
     const response = await AIService.chat(
