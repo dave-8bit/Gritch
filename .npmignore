@@ -1,0 +1,22 @@
+# Source
+src/
+
+# Tests
+test/
+
+# Development
+.vscode/
+.github/
+node_modules/
+
+# Temporary files
+*.log
+*.tgz
+*.tsbuildinfo
+
+# Project notes
+TODO.md
+
+# Environment
+.env
+.env.*

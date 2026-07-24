@@ -6,6 +6,12 @@
  "bin": {
   "gritch": "dist/index.js"
  },
+ "files": [
+  "dist",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE"
+ ],
  "scripts": {
   "build": "tsc",
   "dev": "ts-node src/index.ts",
@@ -31,7 +37,6 @@
   "dotenv": "^17.4.2",
   "groq-sdk": "^0.3.3",
   "inquirer": "^9.2.15",
-  "langchain-weather-integration": "^0.1.0",
   "ora": "^8.0.1",
   "simple-git": "^3.22.0"
  },
