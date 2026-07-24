@@ -20,3 +20,5 @@ TODO.md
 # Environment
 .env
 .env.*
+
+*.map

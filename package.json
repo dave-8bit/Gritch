@@ -1,50 +1,62 @@
 {
- "name": "gritch",
- "version": "1.1.1",
- "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
- "main": "dist/index.js",
- "bin": {
-  "gritch": "dist/index.js"
- },
- "files": [
-  "dist",
-  "README.md",
-  "CHANGELOG.md",
-  "LICENSE"
- ],
+  "name": "gritch",
+  "version": "1.1.1",
+  "description": "AI-powered Git assistant CLI — generate commit messages, changelogs, and more",
+  "main": "dist/index.js",
+  "bin": {
+    "gritch": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
  "scripts": {
-  "build": "tsc",
+  "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+  "build": "npm run clean && tsc",
   "dev": "ts-node src/index.ts",
   "start": "node dist/index.js",
   "test": "vitest run",
   "prepare": "npm run build"
- },
- "keywords": [
-  "git",
-  "cli",
-  "ai",
-  "groq",
-  "commit",
-  "changelog",
-  "developer-tools"
- ],
- "author": "dave-8bit",
- "license": "MIT",
- "dependencies": {
-  "@inquirer/prompts": "^8.4.3",
-  "chalk": "^5.3.0",
-  "commander": "^12.0.0",
-  "dotenv": "^17.4.2",
-  "groq-sdk": "^0.3.3",
-  "inquirer": "^9.2.15",
-  "ora": "^8.0.1",
-  "simple-git": "^3.22.0"
- },
- "devDependencies": {
-  "@types/node": "^20.11.5",
-  "nodemon": "^3.0.3",
-  "ts-node": "^10.9.2",
-  "typescript": "^5.3.3",
-  "vitest": "^4.1.10"
- }
+},
+  "keywords": [
+    "git",
+    "cli",
+    "ai",
+    "groq",
+    "commit",
+    "changelog",
+    "developer-tools"
+  ],
+  "author": "Dave Craft (dave-8bit)",
+  "license": "MIT",
+  "homepage": "https://github.com/dave-8bit/Gritch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dave-8bit/Gritch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dave-8bit/Gritch/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.4.3",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "dotenv": "^17.4.2",
+    "groq-sdk": "^0.3.3",
+    "inquirer": "^9.2.15",
+    "ora": "^8.0.1",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "nodemon": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.10"
+  }
 }
