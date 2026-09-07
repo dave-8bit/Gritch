@@ -3,6 +3,7 @@ import type { ArchitectureDetectionResult } from './architecture';
 import type { DependencyIndex } from './dependencies';
 import type { PackageManagerDetectionResult } from './packageManager';
 import type { RepositoryTree, RepositoryTreeNode } from './tree';
+import type { RepositoryCommit } from '../utils/git';
 
 function formatConfidence(confidence: number): string {
   if (!Number.isFinite(confidence) || confidence <= 0) return '0';
@@ -405,4 +406,25 @@ export function formatRepositoryStats(profile: RepositoryProfile): string {
     `  Framework: ${profile.frameworks.confidence > 0 ? profile.frameworks.primary : 'Not detected'}`,
     `  Build Tool: ${profile.buildTools.primary ?? 'Not detected'}`,
   ].join('\n');
+}
+
+export function formatRepositoryHistory(root: string, commits: readonly RepositoryCommit[]): string {
+  const lines = [
+    'Repository History',
+    `  Root: ${root}`,
+    `  Commits: ${commits.length}`,
+    '',
+  ];
+
+  if (commits.length === 0) {
+    lines.push('  (no commits)');
+    return lines.join('\n');
+  }
+
+  for (const commit of commits) {
+    lines.push(`  ${commit.hash.slice(0, 7)}  ${commit.date}  ${commit.author}`);
+    lines.push(`    ${commit.subject}`);
+  }
+
+  return lines.join('\n');
 }

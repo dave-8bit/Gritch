@@ -4,6 +4,13 @@ import { resolveRepoRoot } from '../inspect/root';
 
 const git = simpleGit();
 
+export interface RepositoryCommit {
+  hash: string;
+  author: string;
+  date: string;
+  subject: string;
+}
+
 export async function getStagedDiff(): Promise<string> {
   const diff = await git.diff(['--cached']);
   if (!diff) {
@@ -53,6 +60,45 @@ export async function getCommitsBetween(from: string, to: string): Promise<strin
   return lines.join('\n');
 }
 
+export async function getRecentCommits(
+  repositoryPath?: string,
+  maxCount: number = 10,
+): Promise<RepositoryCommit[]> {
+  const repositoryRoot = resolveRepoRoot(repositoryPath).root;
+  const repositoryGit = simpleGit(repositoryRoot);
+
+  let status;
+  try {
+    status = await repositoryGit.status();
+  } catch (error) {
+    if (error instanceof Error && /not a git repository/i.test(error.message)) {
+      throw new Error('Not a git repository. Please run gritch inside a git project.');
+    }
+    throw error;
+  }
+
+  try {
+    const result = await repositoryGit.log({ maxCount });
+    return result.all.map((commit) => ({
+      hash: commit.hash,
+      author: commit.author_name,
+      date: commit.date,
+      subject: commit.message.trim(),
+    }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const isKnownUnbornError = /does not have any commits yet|ambiguous argument ['"]?HEAD['"]?/i.test(message);
+    if (isKnownUnbornError && !status.detached) {
+      try {
+        await repositoryGit.revparse(['HEAD']);
+      } catch {
+        return [];
+      }
+    }
+    throw error;
+  }
+}
+
 export async function validateRepo(): Promise<void> {
   try {
     await git.status();
@@ -65,4 +111,3 @@ export function trimDiff(diff: string, maxChars: number = 6000): string {
   if (diff.length <= maxChars) return diff;
   return diff.slice(0, maxChars) + "\n... [diff trimmed for review]";
 }
-

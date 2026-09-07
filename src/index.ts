@@ -15,6 +15,7 @@ import { dependenciesCommand } from './commands/dependencies';
 import { statsCommand } from './commands/stats';
 import { doctorCommand } from './commands/doctor';
 import { treeCommand } from './commands/tree';
+import { historyCommand } from './commands/history';
 
 const program = new Command();
 
@@ -103,6 +104,13 @@ program
     treeCommand(rootPath);
   });
 
+program
+  .command('history [rootPath]')
+  .description('Show recent repository commit history')
+  .action((rootPath: string | undefined) => {
+    void historyCommand(rootPath);
+  });
+
 program.parse(process.argv);
 
 
@@ -125,6 +133,7 @@ if (process.argv.slice(2).length === 0) {
   console.log(`  ${chalk.green('stats [rootPath]')} — ${chalk.dim('Show deterministic repository statistics')}`);
   console.log(`  ${chalk.green('doctor [rootPath]')} — ${chalk.dim('Show deterministic repository health and detected tooling')}`);
   console.log(`  ${chalk.green('tree [rootPath]')} — ${chalk.dim('Show the deterministic repository file tree')}`);
+  console.log(`  ${chalk.green('history [rootPath]')} — ${chalk.dim('Show recent repository commit history')}`);
 
   console.log('');
   console.log(chalk.dim('Run gritch --help for more info'));
