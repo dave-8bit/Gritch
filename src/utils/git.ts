@@ -64,14 +64,14 @@ export async function getRecentCommits(
   repositoryPath?: string,
   maxCount: number = 10,
 ): Promise<RepositoryCommit[]> {
-  const repositoryRoot = resolveRepoRoot(repositoryPath).root;
+  const { root: repositoryRoot, evidence } = resolveRepoRoot(repositoryPath);
   const repositoryGit = simpleGit(repositoryRoot);
 
   let status;
   try {
     status = await repositoryGit.status();
   } catch (error) {
-    if (error instanceof Error && /not a git repository/i.test(error.message)) {
+    if (!evidence && error instanceof Error && /not a git repository/i.test(error.message)) {
       throw new Error('Not a git repository. Please run gritch inside a git project.');
     }
     throw error;
@@ -86,13 +86,18 @@ export async function getRecentCommits(
       subject: commit.message.trim(),
     }));
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const isKnownUnbornError = /does not have any commits yet|ambiguous argument ['"]?HEAD['"]?/i.test(message);
-    if (isKnownUnbornError && !status.detached) {
+    if (!status.detached) {
       try {
-        await repositoryGit.revparse(['HEAD']);
+        const headReference = (await repositoryGit.raw(['symbolic-ref', '--quiet', 'HEAD'])).trim();
+        if (headReference.startsWith('refs/heads/')) {
+          try {
+            await repositoryGit.revparse(['HEAD']);
+          } catch {
+            return [];
+          }
+        }
       } catch {
-        return [];
+        // Preserve the original log error when HEAD itself is invalid.
       }
     }
     throw error;

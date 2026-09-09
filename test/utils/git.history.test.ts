@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const { statusMock, logMock, revparseMock, simpleGitMock } = vi.hoisted(() => {
+const { statusMock, logMock, revparseMock, rawMock, simpleGitMock } = vi.hoisted(() => {
   const statusMock = vi.fn();
   const logMock = vi.fn();
   const revparseMock = vi.fn();
+  const rawMock = vi.fn();
   const simpleGitMock = vi.fn(() => ({
     status: statusMock,
     log: logMock,
     revparse: revparseMock,
+    raw: rawMock,
   }));
-  return { statusMock, logMock, revparseMock, simpleGitMock };
+  return { statusMock, logMock, revparseMock, rawMock, simpleGitMock };
 });
 
 vi.mock('simple-git', () => ({
@@ -21,11 +24,28 @@ vi.mock('simple-git', () => ({
 
 import { getRecentCommits } from '../../src/utils/git';
 
+function createGitRepository(): string {
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gritch-history-'));
+  execFileSync('git', ['init', '--quiet'], {
+    cwd: repositoryRoot,
+    stdio: 'ignore',
+    timeout: 5_000,
+  });
+  return repositoryRoot;
+}
+
 describe('getRecentCommits', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    simpleGitMock.mockImplementation(() => ({
+      status: statusMock,
+      log: logMock,
+      revparse: revparseMock,
+      raw: rawMock,
+    }));
     statusMock.mockResolvedValue({ current: 'main', detached: false });
     revparseMock.mockResolvedValue('abc123');
+    rawMock.mockResolvedValue('refs/heads/main');
   });
 
   it('maps scoped log records and preserves Git ordering', async () => {
@@ -83,11 +103,28 @@ describe('getRecentCommits', () => {
   });
 
   it('returns an empty list for an unborn repository', async () => {
-    statusMock.mockResolvedValue({ current: null, detached: false });
+    const repositoryRoot = createGitRepository();
+    statusMock.mockResolvedValue({ current: 'master', detached: false });
+    logMock.mockRejectedValue(new Error('fatal: your current branch does not have any commits yet'));
+    rawMock.mockResolvedValue('refs/heads/master');
+    revparseMock.mockRejectedValue(new Error('fatal: ambiguous argument HEAD'));
+
+    await expect(getRecentCommits(repositoryRoot)).resolves.toEqual([]);
+  });
+
+  it('recognizes an unborn repository from its symbolic HEAD state', async () => {
     logMock.mockRejectedValue(new Error('fatal: your current branch does not have any commits yet'));
     revparseMock.mockRejectedValue(new Error('fatal: ambiguous argument HEAD'));
 
     await expect(getRecentCommits('C:/repo')).resolves.toEqual([]);
+  });
+
+  it('rejects when HEAD is invalid even if Git reports an unborn branch', async () => {
+    const repositoryRoot = createGitRepository();
+    fs.writeFileSync(path.join(repositoryRoot, '.git', 'HEAD'), 'broken\n');
+    statusMock.mockRejectedValue(new Error('fatal: not a git repository'));
+
+    await expect(getRecentCommits(repositoryRoot)).rejects.toBeInstanceOf(Error);
   });
 
   it('rejects non-Git directories with the established error', async () => {
