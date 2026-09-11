@@ -10,6 +10,7 @@ import {
   RepositoryPersistenceError,
 } from '../../../src/core/repository/repository.persistence';
 import { CURRENT_SERIALIZATION_VERSION, type RepositorySnapshot } from '../../../src/core/repository/repository.snapshot';
+import { CURRENT_INSPECTION_VERSION } from '../../../src/core/repository/repository.state';
 import { openRepositoryDatabase } from '../../../src/core/storage/sqlite.connection';
 import { migrateRepositoryDatabase } from '../../../src/core/storage/sqlite.migrations';
 import { SqliteRepositoryPersistence } from '../../../src/core/storage/sqlite.repository-persistence';
@@ -30,6 +31,12 @@ function makeSnapshot(root: string, sourceRevision = 'a'.repeat(40)): Repository
   return {
     identity: resolveRepositoryIdentity(root),
     sourceRevision,
+    repositoryState: {
+      headRevision: sourceRevision,
+      worktreeState: 'clean',
+      statusFingerprint: 'clean-fingerprint',
+      inspectionVersion: CURRENT_INSPECTION_VERSION,
+    },
     capturedAt: '2026-09-03T12:00:00.000Z',
     serializationVersion: CURRENT_SERIALIZATION_VERSION,
     profile: inspectRepository(root),

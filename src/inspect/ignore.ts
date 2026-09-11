@@ -9,6 +9,7 @@ export interface IgnoreRules {
 
 const DEFAULT_DIR_NAMES = [
   '.git',
+  '.gritch',
   'node_modules',
   'dist',
   'build',
@@ -50,4 +51,3 @@ export function shouldIgnorePath(relativePosixPath: string, rules: IgnoreRules =
   const segments = p.split('/').filter(Boolean);
   return segments.some((seg) => rules.dirNames.has(seg));
 }
-

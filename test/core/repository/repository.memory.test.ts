@@ -10,6 +10,7 @@ import {
   CURRENT_SERIALIZATION_VERSION,
   type RepositorySnapshot,
 } from '../../../src/core/repository/repository.snapshot';
+import { CURRENT_INSPECTION_VERSION, type RepositoryState } from '../../../src/core/repository/repository.state';
 import {
   RepositoryMemoryCoordinator,
   type RepositoryMemoryOptions,
@@ -24,10 +25,36 @@ function makeProfile(root = '/repo'): RepositoryProfile {
   return { root } as RepositoryProfile;
 }
 
+function makeState(overrides: Partial<RepositoryState> = {}): RepositoryState {
+  return {
+    identity: makeIdentity(),
+    headRevision: 'head-a',
+    worktreeState: 'clean',
+    status: {
+      staged: [],
+      modified: [],
+      untracked: [],
+      deleted: [],
+      renamed: [],
+      conflicted: [],
+      entries: [],
+      fingerprint: 'clean-fingerprint',
+    },
+    inspectionVersion: CURRENT_INSPECTION_VERSION,
+    ...overrides,
+  };
+}
+
 function makeSnapshot(overrides: Partial<RepositorySnapshot> = {}): RepositorySnapshot {
   return {
     identity: makeIdentity(),
     sourceRevision: 'head-a',
+    repositoryState: {
+      headRevision: 'head-a',
+      worktreeState: 'clean',
+      statusFingerprint: 'clean-fingerprint',
+      inspectionVersion: CURRENT_INSPECTION_VERSION,
+    },
     capturedAt: '2026-09-04T00:00:00.000Z',
     serializationVersion: CURRENT_SERIALIZATION_VERSION,
     profile: makeProfile(),
@@ -64,7 +91,7 @@ function setup(overrides: Partial<RepositoryMemoryOptions> = {}) {
   const options: RepositoryMemoryOptions = {
     persistence,
     resolveIdentity: () => makeIdentity(),
-    getSourceRevision: async () => 'head-a',
+    observeState: async () => makeState(),
     inspect: () => {
       inspections += 1;
       return profile;
@@ -108,6 +135,42 @@ describe('RepositoryMemoryCoordinator', () => {
     await expect(setupState.memory.getSnapshot('/input')).resolves.toBe(snapshot);
     expect(setupState.inspections).toBe(0);
     expect(setupState.persistence.saved).toHaveLength(0);
+  });
+
+  it.each([
+    ['status fingerprint', {
+      state: makeState({ status: { ...makeState().status, fingerprint: 'changed-fingerprint' } }),
+    }],
+    ['inspection version', {
+      state: makeState({ inspectionVersion: CURRENT_INSPECTION_VERSION + 1 }),
+    }],
+  ])('refreshes a cache when repository %s changes', async (_reason, { state }) => {
+    const setupState = setup({ observeState: async () => state });
+    setupState.persistence.loaded = makeSnapshot();
+
+    const result = await setupState.memory.getSnapshot('/input');
+
+    expect(setupState.inspections).toBe(1);
+    expect(result).toBe(setupState.persistence.saved[0]);
+    expect(result.repositoryState).toMatchObject({
+      statusFingerprint: state.status.fingerprint,
+      inspectionVersion: state.inspectionVersion,
+    });
+  });
+
+  it('does not reuse a cached profile for a dirty worktree', async () => {
+    const dirtyState = makeState({
+      worktreeState: 'dirty',
+      status: { ...makeState().status, fingerprint: 'dirty-fingerprint' },
+    });
+    const setupState = setup({ observeState: async () => dirtyState });
+    setupState.persistence.loaded = makeSnapshot();
+
+    const result = await setupState.memory.getSnapshot('/input');
+
+    expect(setupState.inspections).toBe(1);
+    expect(result).toBe(setupState.persistence.saved[0]);
+    expect(result.repositoryState.worktreeState).toBe('dirty');
   });
 
   it('reuses a snapshot when identity, root, revision, and version match', async () => {
@@ -197,7 +260,7 @@ describe('RepositoryMemoryCoordinator', () => {
 
   it('refresh always inspects and creates a complete snapshot', async () => {
     const setupState = setup({
-      getSourceRevision: async () => undefined,
+      observeState: async () => makeState({ headRevision: undefined }),
     });
     setupState.persistence.loaded = makeSnapshot({ sourceRevision: undefined });
 

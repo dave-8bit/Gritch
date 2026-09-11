@@ -1,7 +1,11 @@
 import { buildRepositoryContext } from '../ai/profile-context';
-import { inspectRepository } from '../inspect/profile';
+import type { RepositoryMemory } from '../core/repository/repository.memory';
+import { repositoryMemory } from './repository-memory';
 
-export function contextCommand(rootPath?: string): void {
-  const profile = inspectRepository(rootPath);
-  console.log(buildRepositoryContext(profile));
+export async function contextCommand(
+  rootPath?: string,
+  memory: RepositoryMemory = repositoryMemory,
+): Promise<void> {
+  const snapshot = await memory.getSnapshot(rootPath);
+  console.log(buildRepositoryContext(snapshot.profile));
 }

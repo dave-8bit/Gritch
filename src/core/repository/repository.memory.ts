@@ -1,4 +1,3 @@
-import { getCurrentHeadRevision } from '../../utils/git';
 import { inspectRepository, type RepositoryProfile } from '../../inspect/profile';
 import { SqliteRepositoryPersistence } from '../storage/sqlite.repository-persistence';
 import {
@@ -9,19 +8,21 @@ import {
 import { resolveRepositoryIdentity, type RepositoryIdentity } from './repository.identity';
 import {
   CURRENT_SERIALIZATION_VERSION,
+  type PersistedRepositoryState,
   type RepositorySnapshot,
 } from './repository.snapshot';
+import { observeRepositoryState, type RepositoryState } from './repository.state';
 
 export interface RepositoryMemory {
-  getSnapshot(repositoryPath: string): Promise<RepositorySnapshot>;
-  refresh(repositoryPath: string): Promise<RepositorySnapshot>;
+  getSnapshot(repositoryPath?: string): Promise<RepositorySnapshot>;
+  refresh(repositoryPath?: string): Promise<RepositorySnapshot>;
 }
 
 export interface RepositoryMemoryDependencies {
   persistence: RepositoryPersistence;
   inspect: (repositoryPath: string) => RepositoryProfile;
-  resolveIdentity: (repositoryPath: string) => RepositoryIdentity;
-  getSourceRevision: (repositoryPath: string) => Promise<string | undefined>;
+  resolveIdentity: (repositoryPath?: string) => RepositoryIdentity;
+  observeState: (repositoryPath: string) => Promise<RepositoryState>;
 }
 
 export type RepositoryMemoryOptions = Partial<RepositoryMemoryDependencies>;
@@ -29,12 +30,18 @@ export type RepositoryMemoryOptions = Partial<RepositoryMemoryDependencies>;
 function matchesCurrentRepository(
   snapshot: RepositorySnapshot,
   identity: RepositoryIdentity,
-  sourceRevision: string | undefined,
+  state: PersistedRepositoryState,
 ): boolean {
+  if (state.worktreeState === 'dirty') return false;
+
   return snapshot.identity.root === identity.root &&
     snapshot.identity.key === identity.key &&
-    snapshot.sourceRevision === sourceRevision &&
-    snapshot.serializationVersion === CURRENT_SERIALIZATION_VERSION;
+    snapshot.sourceRevision === state.headRevision &&
+    snapshot.serializationVersion === CURRENT_SERIALIZATION_VERSION &&
+    snapshot.repositoryState.worktreeState === state.worktreeState &&
+    snapshot.repositoryState.headRevision === state.headRevision &&
+    snapshot.repositoryState.statusFingerprint === state.statusFingerprint &&
+    snapshot.repositoryState.inspectionVersion === state.inspectionVersion;
 }
 
 export class RepositoryMemoryCoordinator implements RepositoryMemory {
@@ -45,13 +52,19 @@ export class RepositoryMemoryCoordinator implements RepositoryMemory {
       persistence: options.persistence ?? new SqliteRepositoryPersistence(),
       inspect: options.inspect ?? inspectRepository,
       resolveIdentity: options.resolveIdentity ?? resolveRepositoryIdentity,
-      getSourceRevision: options.getSourceRevision ?? getCurrentHeadRevision,
+      observeState: options.observeState ?? observeRepositoryState,
     };
   }
 
-  async getSnapshot(repositoryPath: string): Promise<RepositorySnapshot> {
+  async getSnapshot(repositoryPath?: string): Promise<RepositorySnapshot> {
     const identity = this.dependencies.resolveIdentity(repositoryPath);
-    const sourceRevision = await this.dependencies.getSourceRevision(identity.root);
+    const observed = await this.dependencies.observeState(identity.root);
+    const state: PersistedRepositoryState = {
+      headRevision: observed.headRevision,
+      worktreeState: observed.worktreeState,
+      statusFingerprint: observed.status.fingerprint,
+      inspectionVersion: observed.inspectionVersion,
+    };
 
     let persisted: RepositorySnapshot | undefined;
     try {
@@ -63,27 +76,34 @@ export class RepositoryMemoryCoordinator implements RepositoryMemory {
       }
     }
 
-    if (persisted && matchesCurrentRepository(persisted, identity, sourceRevision)) {
+    if (persisted && matchesCurrentRepository(persisted, identity, state)) {
       return persisted;
     }
 
-    return this.createFreshSnapshot(identity, sourceRevision);
+    return this.createFreshSnapshot(identity, state);
   }
 
-  async refresh(repositoryPath: string): Promise<RepositorySnapshot> {
+  async refresh(repositoryPath?: string): Promise<RepositorySnapshot> {
     const identity = this.dependencies.resolveIdentity(repositoryPath);
-    const sourceRevision = await this.dependencies.getSourceRevision(identity.root);
+    const observed = await this.dependencies.observeState(identity.root);
+    const state: PersistedRepositoryState = {
+      headRevision: observed.headRevision,
+      worktreeState: observed.worktreeState,
+      statusFingerprint: observed.status.fingerprint,
+      inspectionVersion: observed.inspectionVersion,
+    };
 
-    return this.createFreshSnapshot(identity, sourceRevision);
+    return this.createFreshSnapshot(identity, state);
   }
 
   private async createFreshSnapshot(
     identity: RepositoryIdentity,
-    sourceRevision: string | undefined,
+    repositoryState: PersistedRepositoryState,
   ): Promise<RepositorySnapshot> {
     const snapshot: RepositorySnapshot = {
       identity,
-      sourceRevision,
+      sourceRevision: repositoryState.headRevision,
+      repositoryState,
       capturedAt: new Date().toISOString(),
       serializationVersion: CURRENT_SERIALIZATION_VERSION,
       profile: this.dependencies.inspect(identity.root),

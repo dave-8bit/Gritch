@@ -100,7 +100,7 @@ describe('inspect formatter', () => {
     );
   });
 
-  it('formats a representative repository and is stable (formatter output matches exact string and CLI stdout)', () => {
+  it('formats a representative repository and is stable (formatter output matches exact string and CLI stdout)', async () => {
     const root = makeRoot();
 
     writePkg(root, {
@@ -146,7 +146,7 @@ describe('inspect formatter', () => {
     };
 
     try {
-      inspectCommand(root);
+      await inspectCommand(root);
     } finally {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (console as any).log = originalLog;
@@ -244,4 +244,3 @@ describe('inspect formatter', () => {
     );
   });
 });
-

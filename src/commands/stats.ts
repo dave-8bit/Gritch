@@ -1,7 +1,11 @@
-import { inspectRepository } from '../inspect/profile';
 import { formatRepositoryStats } from '../inspect/formatter';
+import type { RepositoryMemory } from '../core/repository/repository.memory';
+import { repositoryMemory } from './repository-memory';
 
-export function statsCommand(rootPath?: string): void {
-  const profile = inspectRepository(rootPath);
-  console.log(formatRepositoryStats(profile));
+export async function statsCommand(
+  rootPath?: string,
+  memory: RepositoryMemory = repositoryMemory,
+): Promise<void> {
+  const snapshot = await memory.getSnapshot(rootPath);
+  console.log(formatRepositoryStats(snapshot.profile));
 }

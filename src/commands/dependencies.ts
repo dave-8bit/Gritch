@@ -1,7 +1,11 @@
-import { inspectRepository } from '../inspect/profile';
 import { formatDependencies } from '../inspect/formatter';
+import type { RepositoryMemory } from '../core/repository/repository.memory';
+import { repositoryMemory } from './repository-memory';
 
-export function dependenciesCommand(rootPath?: string): void {
-  const profile = inspectRepository(rootPath);
-  console.log(formatDependencies(profile.dependencies, profile.packageManager));
+export async function dependenciesCommand(
+  rootPath?: string,
+  memory: RepositoryMemory = repositoryMemory,
+): Promise<void> {
+  const snapshot = await memory.getSnapshot(rootPath);
+  console.log(formatDependencies(snapshot.profile.dependencies, snapshot.profile.packageManager));
 }

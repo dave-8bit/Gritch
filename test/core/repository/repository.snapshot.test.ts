@@ -12,6 +12,7 @@ import {
   serializeRepositorySnapshot,
   type RepositorySnapshot,
 } from '../../../src/core/repository/repository.snapshot';
+import { CURRENT_INSPECTION_VERSION } from '../../../src/core/repository/repository.state';
 import { clearDependencyCache } from '../../../src/inspect/dependencies';
 
 const temporaryRoots: string[] = [];
@@ -32,6 +33,12 @@ function makeSnapshot(): RepositorySnapshot {
   return {
     identity,
     sourceRevision: 'a'.repeat(40),
+    repositoryState: {
+      headRevision: 'a'.repeat(40),
+      worktreeState: 'clean',
+      statusFingerprint: 'clean-fingerprint',
+      inspectionVersion: CURRENT_INSPECTION_VERSION,
+    },
     capturedAt: '2026-09-03T12:00:00.000Z',
     serializationVersion: CURRENT_SERIALIZATION_VERSION,
     profile: inspectRepository(root),
@@ -52,6 +59,7 @@ describe('repository snapshot serialization', () => {
 
     expect(restored.identity).toEqual(original.identity);
     expect(restored.sourceRevision).toBe(original.sourceRevision);
+    expect(restored.repositoryState).toEqual(original.repositoryState);
     expect(restored.capturedAt).toBe(original.capturedAt);
     expect(restored.serializationVersion).toBe(CURRENT_SERIALIZATION_VERSION);
     expect(restored.profile.root).toBe(original.profile.root);

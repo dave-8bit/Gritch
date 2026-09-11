@@ -58,43 +58,43 @@ program
 program
   .command('inspect [rootPath]')
   .description('Inspect a repository and print detected technologies')
-  .action((rootPath: string | undefined) => {
-    inspectCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await inspectCommand(rootPath);
   });
 
 program
   .command('context [rootPath]')
   .description('Show deterministic repository engineering context')
-  .action((rootPath: string | undefined) => {
-    contextCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await contextCommand(rootPath);
   });
 
 program
   .command('architecture [rootPath]')
   .description('Show detected repository architecture')
-  .action((rootPath: string | undefined) => {
-    architectureCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await architectureCommand(rootPath);
   });
 
 program
   .command('dependencies [rootPath]')
   .description('Show repository dependencies')
-  .action((rootPath: string | undefined) => {
-    dependenciesCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await dependenciesCommand(rootPath);
   });
 
 program
   .command('stats [rootPath]')
   .description('Show deterministic repository statistics')
-  .action((rootPath: string | undefined) => {
-    statsCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await statsCommand(rootPath);
   });
 
 program
   .command('doctor [rootPath]')
   .description('Show deterministic repository health and detected tooling')
-  .action((rootPath: string | undefined) => {
-    doctorCommand(rootPath);
+  .action(async (rootPath: string | undefined) => {
+    await doctorCommand(rootPath);
   });
 
 program
@@ -111,7 +111,10 @@ program
     void historyCommand(rootPath);
   });
 
-program.parse(process.argv);
+void program.parseAsync(process.argv).catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
 
 
 if (process.argv.slice(2).length === 0) {

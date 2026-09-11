@@ -1,11 +1,20 @@
 import type { RepositoryProfile } from '../../inspect/profile';
 import type { RepositoryIdentity } from './repository.identity';
+import type { RepositoryWorktreeState } from './repository.state';
 
-export const CURRENT_SERIALIZATION_VERSION = 1;
+export const CURRENT_SERIALIZATION_VERSION = 2;
+
+export interface PersistedRepositoryState {
+  headRevision?: string;
+  worktreeState: RepositoryWorktreeState;
+  statusFingerprint: string;
+  inspectionVersion: number;
+}
 
 export interface RepositorySnapshot {
   identity: RepositoryIdentity;
   sourceRevision?: string;
+  repositoryState: PersistedRepositoryState;
   capturedAt: string;
   serializationVersion: number;
   profile: RepositoryProfile;
@@ -26,6 +35,7 @@ interface SerializedRepositoryProfile extends Omit<RepositoryProfile, 'dependenc
 interface SerializedRepositorySnapshot {
   identity: RepositoryIdentity;
   sourceRevision?: string;
+  repositoryState: PersistedRepositoryState;
   capturedAt: string;
   serializationVersion: number;
   profile: SerializedRepositoryProfile;
@@ -86,6 +96,15 @@ function isDependencies(value: unknown): value is SerializedDependencyIndex {
     isOptionalString(value.packageManager) &&
     (value.scripts === undefined || isStringRecord(value.scripts))
   );
+}
+
+function isRepositoryState(value: unknown): value is PersistedRepositoryState {
+  return isRecord(value) &&
+    isOptionalString(value.headRevision) &&
+    ['clean', 'dirty', 'unborn', 'detached', 'non-git'].includes(String(value.worktreeState)) &&
+    isString(value.statusFingerprint) &&
+    Number.isInteger(value.inspectionVersion) &&
+    (value.inspectionVersion as number) >= 1;
 }
 
 function isPackageManager(value: unknown): boolean {
@@ -149,6 +168,8 @@ function isSerializedSnapshot(value: unknown): value is SerializedRepositorySnap
     isString(value.identity.key) &&
     value.identity.root === value.identity.key &&
     isOptionalString(value.sourceRevision) &&
+    isRepositoryState(value.repositoryState) &&
+    value.sourceRevision === value.repositoryState.headRevision &&
     isString(value.capturedAt) &&
     !Number.isNaN(Date.parse(value.capturedAt)) &&
     value.serializationVersion === CURRENT_SERIALIZATION_VERSION &&
@@ -203,6 +224,9 @@ export function serializeRepositorySnapshot(snapshot: RepositorySnapshot): strin
   const serialized: SerializedRepositorySnapshot = {
     identity: { ...snapshot.identity },
     sourceRevision: snapshot.sourceRevision,
+    repositoryState: {
+      ...snapshot.repositoryState,
+    },
     capturedAt: snapshot.capturedAt,
     serializationVersion: CURRENT_SERIALIZATION_VERSION,
     profile: toSerializedProfile(snapshot.profile),
@@ -226,6 +250,9 @@ export function deserializeRepositorySnapshot(serialized: string): RepositorySna
   return {
     identity: { ...parsed.identity },
     sourceRevision: parsed.sourceRevision,
+    repositoryState: {
+      ...parsed.repositoryState,
+    },
     capturedAt: parsed.capturedAt,
     serializationVersion: parsed.serializationVersion,
     profile: fromSerializedProfile(parsed.profile),
