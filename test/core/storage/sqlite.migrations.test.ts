@@ -31,7 +31,7 @@ function getSchemaVersion(database: ReturnType<typeof openRepositoryDatabase>): 
 }
 
 describe('sqlite migrations', () => {
-  it('creates schema version 1 and both approved tables', () => {
+  it('creates schema version 2 with the approved tables', () => {
     const root = makeRepositoryRoot();
     const database = migrateRepositoryDatabase(root);
 
@@ -41,6 +41,9 @@ describe('sqlite migrations', () => {
     ).get()).toBeTruthy();
     expect(database.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'repository_snapshots'",
+    ).get()).toBeTruthy();
+    expect(database.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'repository_files'",
     ).get()).toBeTruthy();
 
     database.close();
@@ -67,6 +70,27 @@ describe('sqlite migrations', () => {
     database.close();
   });
 
+  it('creates repository_files with the approved key and metadata columns', () => {
+    const root = makeRepositoryRoot();
+    const database = migrateRepositoryDatabase(root);
+    const columns = database.prepare('PRAGMA table_info(repository_files)').all() as Array<{
+      name: string;
+      type: string;
+      notnull: number;
+      pk: number;
+    }>;
+
+    expect(columns).toEqual([
+      { cid: 0, name: 'repository_key', type: 'TEXT', notnull: 1, dflt_value: null, pk: 1 },
+      { cid: 1, name: 'relative_path', type: 'TEXT', notnull: 1, dflt_value: null, pk: 2 },
+      { cid: 2, name: 'size_bytes', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0 },
+      { cid: 3, name: 'modified_time', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0 },
+      { cid: 4, name: 'extension', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0 },
+      { cid: 5, name: 'metadata_version', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0 },
+    ]);
+    database.close();
+  });
+
   it('is safe and idempotent when run twice', () => {
     const root = makeRepositoryRoot();
     const first = migrateRepositoryDatabase(root);
@@ -76,14 +100,14 @@ describe('sqlite migrations', () => {
     first.close();
 
     const second = migrateRepositoryDatabase(root);
-    expect(getSchemaVersion(second)).toBe('1');
+    expect(getSchemaVersion(second)).toBe('2');
     expect(second.prepare('SELECT repository_key FROM repository_snapshots').get()).toEqual({
       repository_key: 'repo',
     });
     second.close();
   });
 
-  it('opens an existing version-1 database without destructive changes', () => {
+  it('opens an existing version-2 database without destructive changes', () => {
     const root = makeRepositoryRoot();
     const database = migrateRepositoryDatabase(root);
     database.prepare('INSERT INTO repository_snapshots VALUES (?, ?, ?, ?, ?, ?)').run(
@@ -99,6 +123,37 @@ describe('sqlite migrations', () => {
     reopened.close();
   });
 
+  it('migrates version 1 databases while preserving snapshots', () => {
+    const root = makeRepositoryRoot();
+    const database = openRepositoryDatabase(root);
+    database.exec(`
+      CREATE TABLE schema_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+      CREATE TABLE repository_snapshots (
+        repository_key TEXT PRIMARY KEY NOT NULL,
+        root_path TEXT NOT NULL,
+        source_revision TEXT,
+        serialization_version INTEGER NOT NULL,
+        profile_json TEXT NOT NULL,
+        captured_at TEXT NOT NULL
+      );
+    `);
+    database.prepare('INSERT INTO schema_meta (key, value) VALUES (?, ?)').run('schema_version', '1');
+    database.prepare('INSERT INTO repository_snapshots VALUES (?, ?, ?, ?, ?, ?)').run(
+      'repo', root, null, 1, '{}', '2026-09-03T00:00:00.000Z',
+    );
+    database.close();
+
+    const migrated = migrateRepositoryDatabase(root);
+    expect(getSchemaVersion(migrated)).toBe('2');
+    expect(migrated.prepare('SELECT repository_key FROM repository_snapshots').get()).toEqual({
+      repository_key: 'repo',
+    });
+    expect(migrated.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'repository_files'",
+    ).get()).toBeTruthy();
+    migrated.close();
+  });
+
   it('rejects an unsupported future schema version and closes the database', () => {
     const root = makeRepositoryRoot();
     const database = openRepositoryDatabase(root);
@@ -109,12 +164,12 @@ describe('sqlite migrations', () => {
     database.close();
 
     expect(() => migrateRepositoryDatabase(root)).toThrow(
-      'Unsupported SQLite schema version 2; maximum supported version is 1',
+      'Unsupported SQLite schema version 3; maximum supported version is 2',
     );
 
     const check = openRepositoryDatabase(root);
     expect(check.open).toBe(true);
-    expect(getSchemaVersion(check)).toBe('2');
+    expect(getSchemaVersion(check)).toBe('3');
     check.close();
   });
 
@@ -147,7 +202,7 @@ describe('sqlite migrations', () => {
 
     const second = migrateRepositoryDatabase(secondRoot);
     expect(second.prepare('SELECT * FROM repository_snapshots').all()).toEqual([]);
-    expect(getSchemaVersion(second)).toBe('1');
+    expect(getSchemaVersion(second)).toBe('2');
     second.close();
   });
 });

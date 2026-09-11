@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 
 import { openRepositoryDatabase } from './sqlite.connection';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const SCHEMA_VERSION_KEY = 'schema_version';
 
@@ -23,6 +23,24 @@ const CREATE_REPOSITORY_SNAPSHOTS = `
     captured_at TEXT NOT NULL
   )
 `;
+
+const CREATE_REPOSITORY_FILES = `
+  CREATE TABLE repository_files (
+    repository_key TEXT NOT NULL,
+    relative_path TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    modified_time INTEGER NOT NULL,
+    extension TEXT NOT NULL,
+    metadata_version INTEGER NOT NULL,
+    PRIMARY KEY (repository_key, relative_path)
+  )
+`;
+
+const CREATE_REPOSITORY_FILES_EXTENSION_INDEX = `
+  CREATE INDEX repository_files_extension
+  ON repository_files (repository_key, extension)
+`;
+
 
 function readSchemaVersion(database: Database.Database): number {
   const row = database
@@ -53,6 +71,11 @@ function applyVersionOne(database: Database.Database): void {
   database.exec(CREATE_REPOSITORY_SNAPSHOTS);
 }
 
+function applyVersionTwo(database: Database.Database): void {
+  database.exec(CREATE_REPOSITORY_FILES);
+  database.exec(CREATE_REPOSITORY_FILES_EXTENSION_INDEX);
+}
+
 /** Opens and migrates a repository database to the current schema version. */
 export function migrateRepositoryDatabase(repositoryRoot: string): Database.Database {
   const database = openRepositoryDatabase(repositoryRoot);
@@ -72,6 +95,10 @@ export function migrateRepositoryDatabase(repositoryRoot: string): Database.Data
       if (currentVersion < 1) {
         applyVersionOne(database);
         recordSchemaVersion(database, 1);
+      }
+      if (currentVersion < 2) {
+        applyVersionTwo(database);
+        recordSchemaVersion(database, 2);
       }
     });
 

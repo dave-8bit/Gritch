@@ -1,10 +1,14 @@
 export type PathLike = string;
 
 export interface InventoryEntry {
-  /** Absolute or repo-root-relative path (implementation choice) */
+  /** Repository-root-relative path in the platform's native separator format */
   path: string;
-  /** File size in bytes (if available) */
+  /** Repository-root-relative POSIX path for stable persistence and retrieval */
+  relativePath?: string;
+  /** File size in bytes */
   size?: number;
+  /** Filesystem modification time in milliseconds (if available) */
+  modifiedTime?: number;
 }
 
 export interface InventoryResult {
@@ -41,4 +45,3 @@ export interface RepositoryHealthResult {
   /** Asset IDs that were not found in the repository. */
   missing: HealthAssetId[];
 }
-
