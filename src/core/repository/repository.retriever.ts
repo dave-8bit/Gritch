@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import type { RepositoryIdentity } from './repository.identity';
 import { resolveRepositoryIdentity } from './repository.identity';
 import type {
@@ -6,6 +8,7 @@ import type {
 } from './repository.file-index';
 import { normalizeRepositoryPath } from './repository.file-index';
 import { SqliteRepositoryFileIndexPersistence } from '../storage/sqlite.repository-file-index';
+import { getRepositoryDatabasePath } from '../storage/sqlite.connection';
 
 export interface RepositoryRetrieverDependencies {
   reader: RepositoryFileIndexReader;
@@ -52,4 +55,21 @@ export class RepositoryRetriever {
     const target = normalizeRepositoryPath(query).toLowerCase();
     return this.dependencies.reader.searchPaths(identity, target);
   }
+}
+
+/**
+ * Creates a retriever only when a file metadata index already exists for the
+ * repository.
+ *
+ * Returns `undefined` when no index database is present, so a caller can use
+ * metadata-only retrieval when it is available without creating, migrating, or
+ * populating a database as a side effect of reading. This keeps review
+ * independent of whether the M5.2.4 index has ever been built.
+ */
+export function createExistingIndexRetriever(
+  repositoryPath?: string,
+): RepositoryRetriever | undefined {
+  const identity = resolveRepositoryIdentity(repositoryPath);
+  if (!fs.existsSync(getRepositoryDatabasePath(identity.root))) return undefined;
+  return new RepositoryRetriever({ resolveIdentity: () => identity });
 }

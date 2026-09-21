@@ -31,6 +31,13 @@ export function normalizeRepositoryPath(value: string): string {
     .join('/');
 }
 
+/** Deterministic lowercase-with-dot extension of a normalized repository path. */
+export function repositoryPathExtension(normalizedPath: string): string {
+  return normalizedPath.includes('.')
+    ? normalizedPath.slice(normalizedPath.lastIndexOf('.')).toLowerCase()
+    : '';
+}
+
 export function createRepositoryFileRecord(
   identity: RepositoryIdentity,
   relativePath: string,
@@ -38,9 +45,7 @@ export function createRepositoryFileRecord(
   modifiedTime: number,
 ): RepositoryFileRecord {
   const normalizedPath = normalizeRepositoryPath(relativePath);
-  const extension = normalizedPath.includes('.')
-    ? normalizedPath.slice(normalizedPath.lastIndexOf('.')).toLowerCase()
-    : '';
+  const extension = repositoryPathExtension(normalizedPath);
 
   return {
     repositoryKey: identity.key,
